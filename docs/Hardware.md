@@ -6,9 +6,10 @@ reference for working on the gateware — in particular as the basis for a built
 **hardware test routine** that drives and reads the displays, switch matrix, lamps,
 solenoids and sound.
 
-> ⚠️ **Safety**: GottFA1_PLuS switches real pinball voltages (solenoid/lamp rails at
-> ~42 V / 60 V DC). Misusing it — especially energizing solenoid coils for too long —
-> can damage coils, drivers or the playfield. This is a private, non-commercial
+> ⚠️ **Safety**: GottFA1_PLuS switches real pinball voltages — the high-voltage
+> display rails (42 V / 60 V DC) and the solenoid/lamp coils. Misusing it —
+> especially energizing solenoid coils for too long — can damage coils, drivers or
+> the playfield. This is a private, non-commercial
 > project provided **without any warranty**; use at your own risk.
 
 **Sources.** This document is compiled from the VHDL source (`SYS1.vhd` port list /
@@ -76,11 +77,11 @@ Two FPGA families are supported by the project; **this repository targets**:
 ## 3. System block diagram
 
 ```
-                 Gottlieb System 1 backbox / playfield (5 V logic, 42–60 V drive)
+                 Gottlieb System 1 backbox / playfield (5 V logic, 42/60 V displays)
                  ┌──────────────────────────────────────────────────────────────┐
    Returns/Slam/ │   Displays      Switch matrix     Lamp matrix     Solenoids   │
    Outhole (5V)  │  (2 groups,      5 strobe ×        4 data ×        8 coils     │
-                 │   4 strobes)     8 return          ~9 strobe       (42–60 V)   │
+                 │   4 strobes)     8 return          ~9 strobe       (low-side)  │
                  └───▲────────────────▲──────────────────▲───────────────▲───────┘
         74HC4049 →3V3│      74HCT240/244 ↑5V   74HC154+74HC240↑   driver MOSFETs ↑
                  ┌───┴────────────────┴──────────────────┴───────────────┴───────┐
@@ -98,8 +99,9 @@ Two FPGA families are supported by the project; **this repository targets**:
 Logic flow: the emulated CPU runs the original Gottlieb game ROM (loaded from SD
 card into FPGA block RAM) and drives the same I/O devices as the original MPU. FPGA
 pins are 3.3 V; inputs from the machine are shifted down by **74HC4049**, outputs are
-buffered up to 5 V by **74HCT240 / 74HCT244**, and lamp/solenoid lines go through the
-driver stage to the 42–60 V rails.
+buffered up to 5 V by **74HCT240 / 74HCT244**, and lamp/solenoid lines are switched
+**low-side** by the driver-stage N-channel MOSFETs (to GND). The 42 V / 60 V rails
+feed the high-voltage gas-discharge displays only.
 
 ---
 
@@ -115,9 +117,15 @@ On-board rails:
 |------|--------|----------|
 | +5 V | `LM2576-5.0` switching regulator | board logic (74HCxx), pull-ups, audio amp |
 | +12 V | from 12 V DC input | analog / amp supply |
-| 60 V DC | `TL783CKC` HV regulator (from ~90 V rectified) | solenoid / lamp drive |
-| 42 V DC | derived | solenoid / lamp drive |
+| 60 V DC | `TL783CKC` HV regulator (from ~90 V rectified) | the four **player** score displays |
+| 42 V DC | derived | the **status / credit** display |
 | +3.3 V / +1.2 V | FPGA dev board regulators | FPGA core & I/O |
+
+> **Note:** the 42 V / 60 V rails exclusively feed the Gottlieb gas-discharge display
+> panels (which need these high voltages — 60 V for the four player displays, 42 V for
+> the status/credit display). **Solenoids and lamps are *not* powered from these
+> rails**: they are switched **low-side** by N-channel MOSFETs to GND, with the coil
+> supply coming from the machine's solenoid/lamp supply.
 
 Test points: **TP1 = GND, TP2 = +12 V, TP3 = +5 V, TP4 = 42 V, TP5 = 60 V**.
 Power connectors **P3 / P6** (Molex). Audio power amplifier: **TDA7267**.
@@ -158,6 +166,10 @@ Board side: the 4 strobes feed a **74HC154** (IC23) → up to 16 digit lines
 (`Dis_D1..D16`); the segment groups are buffered by **74HC240** (IC25/IC26). Display
 refresh timing is selectable for gas-discharge "tube" vs LED displays via option DIP
 (`sw2_dips(2)`, see [§11](#11-dip-switches)) — this is fed to `r10788` as `is_tube`.
+
+The Gottlieb display panels are gas-discharge (plasma) tubes and need high drive
+voltages supplied by the board: **60 V for the four player score displays and 42 V
+for the status / credit display** (see [§4](#4-power-supply)).
 
 During boot a banner ("GOTTFA / BY BON / TANGO / 2022", then version / "readSD") is
 shown via the `boot_message` core before the game takes over.
@@ -202,8 +214,9 @@ The lamp matrix is driven from the 10696 GPIO (`U3`, `r10696.vhd`).
 
 Board side: `ds[3:0]` drives a **74HC154** (IC15, the original `Z30 74154`) producing
 strobe lines `DS0..DS9`, buffered by 74HC240 (IC14); together with the 4 data lines
-this addresses up to **36 playfield lamps** (4 × 9). Lamps are switched to the
-42–60 V rail by the driver MOSFETs (driver board).
+this addresses up to **36 playfield lamps** (4 × 9). Lamps are switched **low-side**
+by the lamp-driver N-channel MOSFETs (like the solenoids); they are **not** fed from
+the 42 V / 60 V display rails.
 
 Note: internally `ds` (as `game_ds`) is multiplexed for two extra jobs — reading the
 24 Gottlieb DIPs at boot and detecting the game-over / tilt / HSTD relay states
@@ -220,8 +233,11 @@ relay-detect / dip-read overloading of `ds` when testing outside normal game flo
 
 Eight solenoid drivers, from the A1753 RRIO (`U4`, `rA17xx.vhd`). The FPGA bus is
 **active-low at the pin**: `solenoids <= not solenoids_intern` (`SYS1.vhd:896`), i.e.
-the board inverts it back. Bit→function mapping (VHDL + v2.30 driver schematic, and
-matching the standard System 1 layout):
+the board inverts it back. On the board each output drives the gate of an **N-channel
+MOSFET that switches the coil's ground return (low-side)**; the coil's supply side
+comes from the machine's solenoid supply, not from the 42 V / 60 V display rails.
+Bit→function mapping (VHDL + v2.30 driver schematic, and matching the standard
+System 1 layout):
 
 | `solenoids` bit | Function | Notes |
 |-----------------|----------|-------|
@@ -442,7 +458,7 @@ Authoritative assignment from `SYS1.qsf` (device `10CL006YE144C8G`, 3.3-V LVTTL)
 | `K1` | 10-pin (`WANNENSTECKER-10-ST`) | FPGA configuration / AS programming signals |
 | `Audio1` | 16-pin | DFPlayer-Mini MP3 module (`audio_RX`, DAC, speaker) |
 | `J1a` | microSD socket (`TF-01A`) | Game ROM image card |
-| `P3` / `P6` | Molex | Power input (42 V / 60 V / 60 V AC etc.) |
+| `P3` / `P6` | Molex | Power / high-voltage display rails (42 V / 60 V DC, 60 V AC etc.) |
 | `SP1` | — | Cabinet speaker (from TDA7267) |
 
 > Exact connector pin numbers are **not reproduced here** because the published v2.30
@@ -478,7 +494,8 @@ The planned built-in test routine needs to drive/observe these signals:
 | **Sound** | `Sound_10/100/1K` (= `solenoids_intern(2/3/4)`), `audio_RX` | `SB_Test` |
 
 Watch-outs when bypassing normal game flow:
-- `solenoids` is **active-low at the pin** and inverted on board; pulse coils briefly.
+- `solenoids` is **active-low at the pin** and inverted on board; coils are switched
+  low-side (N-channel MOSFET to GND). Pulse coils briefly only.
 - `ds` is internally reused for Gottlieb-DIP reading and relay detection.
 - Solenoid bits **2/3/4 also fire the chimes** — useful for a combined solenoid+sound
   check, but expect tones.
