@@ -2,6 +2,7 @@
 # Alle übrigen GottFA1_PLuS-Varianten im Arbeitsverzeichnis bleiben ignoriert.
 /*
 !/.gitignore
+!/.gitattributes
 !/README.md
 !/CLAUDE.md
 !/LICENSE
