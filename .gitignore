@@ -1,0 +1,28 @@
+# Repo-Scope: zunächst nur die HW v2.1x / Cyclone-10-Variante + Libs.
+# Alle übrigen GottFA1_PLuS-Varianten im Arbeitsverzeichnis bleiben ignoriert.
+/*
+!/.gitignore
+!/README.md
+!/CLAUDE.md
+!/LICENSE
+!/GottFA1_PLuS_HW21x_Cyclone10/
+!/lib_common/
+!/lib_cyclone_10/
+
+# Quartus Build-Artefakte / generierte Ausgaben
+db/
+incremental_db/
+greybox_tmp/
+atom_netlists/
+output_files/
+*.qws
+*.done
+
+# Backup-/Alt-/OS-Cruft
+archive/
+*.bak
+*~
+*.orig
+* - Kopie.*
+*_old.vhd
+*_new.vhd
