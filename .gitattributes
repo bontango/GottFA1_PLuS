@@ -1,3 +1,26 @@
-# Let Git normalize line endings: store as LF in the repo,
-# check out with the platform-native line ending.
+# Zeilenenden: git normalisiert beim Einchecken auf LF und checkt mit der
+# Plattformkonvention aus. Die Arbeitskopie bleibt damit auf Windows CRLF, wie
+# Quartus und die Windows-Editoren es erwarten, und im Repository liegt trotzdem
+# ueberall LF.
+#
+# Bewusst NICHT auf `eol=lf` umgestellt: das wuerde eine Renormalisierung des
+# halben Baums ausloesen, und der eigentliche Zweck - dass eine Drei-Zeilen-
+# Aenderung nicht als Ganzdatei-Diff im Commit landet - ist mit `text=auto`
+# bereits erreicht.
+#
+# `* -text` waere zu wenig. Das haelt nur GIT davon ab, Zeilenenden zu aendern,
+# nicht die Werkzeuge, die eine Datei beim Speichern von LF auf CRLF kippen.
 * text=auto
+
+# Binaerdateien: nie diffen, nie konvertieren.
+*.jic binary
+*.sof binary
+*.pof binary
+*.rbf binary
+*.img binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.xlsx binary
+*.zip binary

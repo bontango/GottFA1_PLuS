@@ -48,11 +48,22 @@
 -- Version 9.01 -- test button produces sound
 -- Version 9.02 -- dfp player activated with 'active' signal/LED to prevent garbage
 -- Version 9.03 -- moved Button_Test to SB_Test (no Gottlieb SB test button anymore -> fix '1')
+--
+-- Ab hier EIN gemeinsames Top-Level fuer alle vier Boards (Umbau 13.08.2026).
+-- Die angezeigte Version setzt sich jetzt zusammen aus
+--     BOARD_ID  aus variants/<name>/variant_pkg.vhd   (6/7/8/9)
+--     SW_SUB    aus rtl/common/version_pkg.vhd        (fuer alle Boards gleich)
+-- Board-Kennungen: 6 = HW v2.1x Cyclone IV v3, 7 = HW v2.0x Cyclone IV v4,
+--                  8 = HW v2.1x Cyclone IV v4, 9 = HW v2.1x Cyclone 10.
+-- Ein Release aendert damit genau eine Zahl, und zwar in version_pkg.vhd.
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
+-- Was dieses Board ist, und welche Software darauf laeuft:
+use work.variant_pkg.all;   -- BOARD_ID
+use work.version_pkg.all;   -- SW_SUB
 
 entity SYS1 is
 	port(
@@ -66,6 +77,7 @@ entity SYS1 is
 		-- LEDs
 		LED_SD_Error : out STD_LOGIC;						
 		LED_active : out STD_LOGIC;						
+		LED_Test : out STD_LOGIC;                -- nur HW v2.0x, sonst VIRTUAL_PIN
 		
 		-- switchmatrix
 		--sw_strobe : out std_logic_vector(4 downto 0);						
@@ -112,7 +124,11 @@ entity SYS1 is
 		SB_Test			: 	in 	std_logic;
 		SB_Dip_Return	: 	in 	std_logic;
 		
-		audio_RX			: 	out 	std_logic -- Miniplayer
+		audio_RX			: 	out 	std_logic; -- Miniplayer
+		
+		-- USB serial CH340 - nur HW v2.0x, sonst VIRTUAL_PIN
+		USB_Rx			: 	buffer 	std_logic;
+		USB_Tx			: 	in 	std_logic
 		
 
 		);
@@ -288,12 +304,14 @@ begin
 -- general assigments
 LED_active <= not game_running;
 LED_SD_Error <= SDcard_error;
+LED_Test <= not sb_test_active; --LED ON when SB test running
+USB_Rx <= '1';                  --UART-Ruhepegel, solange die CH340-Anbindung nicht benutzt wird
 
 
 ----------------------
 -- boot message
 ----------------------
-bm_st1_display2 <= "BY BON" when reset_l = '0' else "V 903 ";
+bm_st1_display2 <= "BY BON" when reset_l = '0' else string'("V ") & BOARD_ID & SW_SUB & " ";
 bm_st1_display3 <= "TANGO " when reset_l = '0' else "READSD";
 bm_st1_display4 <= " 2022 " when reset_l = '0' else "ERROR " when sdcard_error = '0' else "      ";
 

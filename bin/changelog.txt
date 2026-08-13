@@ -1,0 +1,29 @@
+GottFA1_PLuS - ausgelieferte Programmierdateien
+===============================================
+
+Ab dem Umbau auf den gemeinsamen Sourcebaum (13.08.2026) legt scripts\release.ps1
+die Artefakte nach bin\<BinFolder>\GottFA1_PLuS_v<BoardId><SW_SUB>.jic und haengt
+unten an diese Datei an. Der Dateiname traegt die Version, der Ordner das Board.
+
+Die vier Dateien, die schon vorher hier lagen, folgen einer aelteren Namensgebung
+(flach in bin\, Platine statt Board im Namen). Ihre Zuordnung - nachtraeglich
+bestimmt, weil sie aus dem Namen allein NICHT hervorgeht:
+
+  GottFA1_PLuS_HW20x_v700.jic   2.097.375 B  Cyclone IV  hw20x_cyclone_iv_v4   Code 7.00
+  GottFA1_PLuS_HW20x_v701.jic   2.097.375 B  Cyclone IV  hw20x_cyclone_iv_v4   Code 7.01
+  GottFA1_PLuS_HW21x_v801.jic   2.097.375 B  Cyclone IV  hw21x_cyclone_iv_v4   Code 8.01
+  GottFA1_PLuS_HW21x_v901.jic   2.097.377 B  Cyclone 10  hw21x_cyclone_10      Code 9.01
+
+Der Nachweis fuer die letzte Zeile ist die Dateigroesse: 2.097.377 Byte ist
+geraetetypisch fuer 10CL006Y, waehrend EP4CE6 2.097.375 Byte liefert. Das ist
+wichtig, weil die Variante hw21x_cyclone_iv_v3 vor dem Umbau ebenfalls "V 901"
+anzeigte, obwohl sie nur den Code-Stand 8.01 hatte - von IHR wurde nie etwas
+ausgeliefert. Sie hat deshalb jetzt die Board-ID 6.
+
+Board-IDs: 6 = HW v2.1x Cyclone IV v3 (EP4CE6F17C8, 256-FBGA)
+           7 = HW v2.0x Cyclone IV v4 (EP4CE6E22C8)
+           8 = HW v2.1x Cyclone IV v4 (EP4CE6E22C8)
+           9 = HW v2.1x Cyclone 10    (10CL006YE144C8G)
+
+Welches Board mit welchem Stand tatsaechlich auf Hardware lief, steht in
+VARIANTEN.md - nicht hier.

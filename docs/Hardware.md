@@ -12,9 +12,9 @@ solenoids and sound.
 > the playfield. This is a private, non-commercial
 > project provided **without any warranty**; use at your own risk.
 
-**Sources.** This document is compiled from the VHDL source (`SYS1.vhd` port list /
-comments and the `lib_common` peripheral cores), the FPGA pin assignment in
-`SYS1.qsf`, the project page <https://lisy.dev/gottfa1_plus.html>, the
+**Sources.** This document is compiled from the VHDL source (`top/SYS1.vhd` port list /
+comments and the `rtl/common` peripheral cores), the FPGA pin assignments in
+`variants/<name>/pins.tcl`, the project page <https://lisy.dev/gottfa1_plus.html>, the
 [user manual](https://lisy.dev/swrep/GottFA1/manual/GottFA1_PLuS_user%20manual_v1.00.pdf),
 and the v2.30 schematics (see [References](#16-references)).
 
@@ -31,9 +31,9 @@ machines. A single board replaces the original:
 - Sound card
 
 The original Rockwell parts are re-implemented in VHDL on a small FPGA dev board.
-The emulated chip set (see `SYS1.vhd`) is:
+The emulated chip set (see `top/SYS1.vhd`) is:
 
-| Ref | Original part | Function | VHDL core (`lib_common`) |
+| Ref | Original part | Function | VHDL core (`rtl/common`) |
 |-----|---------------|----------|--------------------------|
 | U1  | PPS/4-2       | CPU                                              | `PPS4_2.vhd` |
 | U2  | 10696 GPIO (dev 0x06) | NVRAM data in/out                        | `r10696.vhd` |
@@ -44,7 +44,7 @@ The emulated chip set (see `SYS1.vhd`) is:
 | Z22 | 5101          | NVRAM (256×4)                                    | `R5101` (Cyclone IP) |
 | Z23 | PGOL          | 1 KB game PROM                                   | `PGOL_ROM` (Cyclone IP) |
 
-The top-level entity is `SYS1` (`SYS1.vhd`). The version documented here is **v9.03**.
+The top-level entity is `SYS1` (`top/SYS1.vhd`). The version documented here is **v9.03**.
 
 License: **GPLv3** (see `LICENSE`).
 
@@ -61,16 +61,35 @@ The GottFA1_PLuS PCB exists in several revisions:
 | v2.30   | Standard MOSFETs, cost-optimized (current design) |
 
 The FPGA itself is a separately sourced **dev board**, programmed via USB Blaster.
-Two FPGA families are supported by the project; **this repository targets**:
+This repository builds **four** combinations of PCB revision and dev board from one
+shared source tree, all with Quartus Prime Lite **22.1std.2**:
 
-- **Intel Cyclone 10 LP `10CL006YE144C8G`** (HW v2.1x), Quartus Prime Lite **22.1**.
+| Variant folder | PCB | FPGA | Package | Board id | Version shown |
+|---|---|---|---|---|---|
+| `variants/hw21x_cyclone_10` | v2.1x | Cyclone 10 LP `10CL006YE144C8G` | 144-EQFP | 9 | `V 903` |
+| `variants/hw21x_cyclone_iv_v4` | v2.1x | Cyclone IV E `EP4CE6E22C8` | 144-EQFP | 8 | `V 803` |
+| `variants/hw20x_cyclone_iv_v4` | v2.0x | Cyclone IV E `EP4CE6E22C8` | 144-EQFP | 7 | `V 703` |
+| `variants/hw21x_cyclone_iv_v3` | v2.1x | Cyclone IV E `EP4CE6F17C8` | 256-FBGA | 6 | `V 603` |
+
+The leading digit on the boot display is the **board id**, the two following digits
+are the shared software version — so `V 803` is board 8 running software `.03`.
+
+**HW v2.0x carries three signals the v2.1x boards do not have:** `LED_Test` (lit while
+the integrated soundboard test runs) and the CH340 USB serial header `USB_Rx` /
+`USB_Tx`. Those ports stay in the shared top level and are marked `VIRTUAL_PIN` on the
+v2.1x variants, so they are neither placed nor driven there.
+
+The pin maps of `hw21x_cyclone_10` and `hw21x_cyclone_iv_v4` differ in only **6 of 85**
+locations — same package, same PCB. `hw21x_cyclone_iv_v3` is the odd one out: a
+256-FBGA, so **all 85** locations differ.
 
 > **Pin numbering caveat.** The published v2.30 schematics are drawn around an
 > **EP2C5/Cyclone II** dev board (connector `X1P`), so the pin numbers printed on
-> them differ from the Cyclone 10 build. **The authoritative FPGA pin assignment is
-> `SYS1.qsf`** (reproduced in [§14](#14-fpga-pin-map)). The schematics remain the
-> reference for *signal names* and the board-level routing (level shifters, drivers,
-> connectors, power).
+> them differ from every build in this repository. **The authoritative FPGA pin
+> assignment is `variants/<name>/pins.tcl`** — one table per board; the Cyclone 10 one
+> is reproduced in [§14](#14-fpga-pin-map). Note that `SYS1.qsf` is a *generated* file
+> and must not be edited. The schematics remain the reference for *signal names* and
+> the board-level routing (level shifters, drivers, connectors, power).
 
 ---
 
@@ -134,7 +153,7 @@ Power connectors **P3 / P6** (Molex). Audio power amplifier: **TDA7267**.
 
 ## 5. FPGA I/O & voltage levels
 
-- FPGA I/O standard: **3.3-V LVTTL** (`SYS1.qsf`), device `10CL006YE144C8G`.
+- FPGA I/O standard: **3.3-V LVTTL** (`scripts/common_header.tcl`, identical for every variant).
 - **Inputs** from the machine (`sw_return[7:0]`, `sw_slam`, `sw_outhole`) pass
   through **74HC4049** hex inverters/level-shifters (5 V → 3.3 V). RC filters
   (470 pF + pull-up) debounce the return lines on-board.
@@ -232,7 +251,7 @@ relay-detect / dip-read overloading of `ds` when testing outside normal game flo
 ## 9. Solenoids
 
 Eight solenoid drivers, from the A1753 RRIO (`U4`, `rA17xx.vhd`). The FPGA bus is
-**active-low at the pin**: `solenoids <= not solenoids_intern` (`SYS1.vhd:896`), i.e.
+**active-low at the pin**: `solenoids <= not solenoids_intern` (`top/SYS1.vhd:914`), i.e.
 the board inverts it back. On the board each output drives the gate of an **N-channel
 MOSFET that switches the coil's ground return (low-side)**; the coil's supply side
 comes from the machine's solenoid supply, not from the 42 V / 60 V display rails.
@@ -243,9 +262,9 @@ System 1 layout):
 |-----------------|----------|-------|
 | `[0]` | Outhole          | |
 | `[1]` | Knocker          | |
-| `[2]` | 10-point chime   | also `Sound_10` trigger (`SYS1.vhd:913`) |
-| `[3]` | 100-point chime  | also `Sound_100` trigger (`SYS1.vhd:914`) |
-| `[4]` | 1000-point chime | also `Sound_1K` trigger (`SYS1.vhd:915`) |
+| `[2]` | 10-point chime   | also `Sound_10` trigger (`top/SYS1.vhd:931`) |
+| `[3]` | 100-point chime  | also `Sound_100` trigger (`top/SYS1.vhd:932`) |
+| `[4]` | 1000-point chime | also `Sound_1K` trigger (`top/SYS1.vhd:933`) |
 | `[5]` | Solenoid 6       | game-specific |
 | `[6]` | Solenoid 7       | game-specific |
 | `[7]` | Solenoid 8       | game-specific |
@@ -287,7 +306,7 @@ music via MP3 (same semantics as the original Multisound card). See
 [§11](#11-dip-switches).
 
 **Testing.** Trigger `Sound_10/100/1K` to sound each chime; assert `SB_Test` to run
-the integrated sound self-test (`SB_Test_SYS1.vhd`, which exercises the three chimes
+the integrated sound self-test (`rtl/common/SB_Test_SYS1.vhd`, which exercises the three chimes
 + background); send a DFPlayer command on `audio_RX` to verify the MP3 path.
 
 ---
@@ -324,7 +343,7 @@ selects:
 
 - **microSD card** (`CS_SDcard`, socket `TF-01A`): holds the game image. The first
   16 KB are read into FPGA RAM at boot with this layout
-  (`SYS1.vhd` address decoding):
+  (`top/SYS1.vhd` address decoding):
 
   | Offset | Size | Content |
   |--------|------|---------|
@@ -340,7 +359,7 @@ selects:
   battery-backed RAM; the emulated 5101 NVRAM content is saved here on triggers
   (game over / test / credit).
 
-The shared SPI bus is muxed in `SYS1.vhd`: SD card is used only during boot
+The shared SPI bus is muxed in `top/SYS1.vhd`: SD card is used only during boot
 (`reset_l = '0'`), the FRAM afterwards.
 
 ---
@@ -352,14 +371,23 @@ The shared SPI bus is muxed in `SYS1.vhd`: SD card is used only during boot
 | `LED_active` | out | Lit while a game is running (`not game_running`) |
 | `LED_SD_Error` | out | Lit on SD-card read error |
 | `LED_0/1/2` | out | SB-DIP read strobes (`sb_dip_strobe(0..2)`) |
+| `LED_Test` | out | **HW v2.0x only** — lit while the integrated SB test runs (`not sb_test_active`). `VIRTUAL_PIN` on v2.1x |
 | `Button_Test` | in | GottFA test switch (weak pull-up) |
+| `SB_Test` | in | Triggers the integrated soundboard test (weak pull-up) |
 | `reset_sw` | in | Master reset (weak pull-up) |
+
+> **Changed in software `.03`.** The Gottlieb soundboard test button no longer
+> exists on these boards, so `Multi_Sound.Test` is tied to `'1'` and the *integrated*
+> soundboard test moved from `Button_Test` to the `SB_Test` pin (its reset comes from
+> `game_running` instead of `reset_l`). This was introduced on the Cyclone 10 build as
+> v9.03 and only reached the three other boards with the shared source tree — on
+> hardware it has been verified on **none** of them yet. See `VARIANTEN.md`.
 
 ---
 
 ## 14. FPGA pin map
 
-Authoritative assignment from `SYS1.qsf` (device `10CL006YE144C8G`, 3.3-V LVTTL).
+Authoritative assignment from `variants/hw21x_cyclone_10/pins.tcl` (device `10CL006YE144C8G`, 3.3-V LVTTL). The other three boards have their own `pins.tcl`.
 
 | Signal | Dir | FPGA pin | Subsystem |
 |--------|-----|----------|-----------|
@@ -464,7 +492,7 @@ Authoritative assignment from `SYS1.qsf` (device `10CL006YE144C8G`, 3.3-V LVTTL)
 > Exact connector pin numbers are **not reproduced here** because the published v2.30
 > schematics number them for the EP2C5/Cyclone II dev board (see the caveat in
 > [§2](#2-hardware-versions--fpga-options)). Use the schematic PDFs for pin-level
-> wiring and `SYS1.qsf` for the Cyclone 10 FPGA pins.
+> wiring and `variants/hw21x_cyclone_10/pins.tcl` for the Cyclone 10 FPGA pins.
 
 ---
 
@@ -476,8 +504,9 @@ Authoritative assignment from `SYS1.qsf` (device `10CL006YE144C8G`, 3.3-V LVTTL)
   - Main: <https://lisy.dev/swrep/GottFA1/PLuS/GottFA1_PLus_230_Main_SCH.PDF>
   - Power: <https://lisy.dev/swrep/GottFA1/PLuS/GottFA1_PLus_230_Power_SCH.PDF>
   - Driver: <https://lisy.dev/swrep/GottFA1/PLuS/GottFA1_PLus_230_Driver_SCH.PDF>
-- Source of truth in this repo: `GottFA1_PLuS_HW21x_Cyclone10/SYS1.vhd`,
-  `…/SYS1.qsf`, and the cores under `lib_common/`.
+- Source of truth in this repo: `top/SYS1.vhd`, `variants/<name>/pins.tcl` and the
+  cores under `rtl/common/`. `variants/<name>/SYS1.qsf` is generated by
+  `scripts/gen_qsf.ps1` and is never edited by hand.
 
 ---
 

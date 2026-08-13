@@ -1,30 +1,78 @@
-# Repo-Scope: zunächst nur die HW v2.1x / Cyclone-10-Variante + Libs.
-# Alle übrigen GottFA1_PLuS-Varianten im Arbeitsverzeichnis bleiben ignoriert.
-/*
-!/.gitignore
-!/.gitattributes
-!/README.md
-!/CLAUDE.md
-!/docs/
-!/LICENSE
-!/GottFA1_PLuS_HW21x_Cyclone10/
-!/lib_common/
-!/lib_cyclone_10/
+# Bis zum Umbau auf den gemeinsamen Sourcebaum (13.08.2026) stand hier eine
+# Whitelist: nur die Cyclone-10-Variante und die beiden lib_-Ordner waren im Repo,
+# alles andere war ausgeschlossen. Genau das war der Grund, warum drei von vier
+# Boards keine Historie hatten - und warum ihre Divergenz nie jemandem auffiel.
+# Jetzt ist der ganze Baum versioniert und nur noch Erzeugtes wird ignoriert.
 
-# Quartus Build-Artefakte / generierte Ausgaben
+# Quartus-Build-Artefakte. Sie liegen jetzt in variants/<name>/, einmal je Variante,
+# weil DAS das Quartus-Projektverzeichnis ist.
 db/
 incremental_db/
 greybox_tmp/
 atom_netlists/
 output_files/
-*.qws
-*.done
+simulation/
 
-# Backup-/Alt-/OS-Cruft
-archive/
+# Quartus-Berichte und -Protokolle
+*.rpt
+*.summary
+*.smsg
+*.pin
+*.jdi
+*.sld
+*.done
+*.qdf
+*.sopcinfo
+*.qws
+
+# Von Quartus erzeugt und mit dem Projekt uninteressant
+c5_pin_model_dump.txt
+PLLJ_PLLSPE_INFO.txt
+
+# Sicherungen und Alt-Cruft
 *.bak
 *~
 *.orig
 * - Kopie.*
 *_old.vhd
 *_new.vhd
+
+# Build-/Pruefprotokolle
+*.log
+
+# Historische Flachprojekte im "alles in einem Ordner"-Stil, jedes mit eigenen
+# Kopien von PPS4_2.vhd, EEprom.vhd und roms/. Sie bleiben bewusst auf der Platte
+# liegen, gehoeren aber nicht ins Repo - und aus ihnen wird NICHT mehr gebaut.
+/GottFA1/
+/GottFA1 - Cyclone10/
+/GottFA1 - CycloneIV/
+/GottFA1 - CycloneIV - PIN/
+
+# Die alten Variantenordner. Nach dem Umbau enthalten sie nur noch Build-Reste und
+# die alten, jetzt erzeugten .qsf. Sie liegen als Rueckfallebene da, bis der erste
+# Hardwaretest aus dem neuen Baum bestaetigt ist. Von dort NICHT mehr bauen.
+/GottFA1_PLuS_HW20x_CycloneIV_v4/
+/GottFA1_PLuS_HW21x_Cyclone10/
+/GottFA1_PLuS_HW21x_CycloneIV_v3/
+/GottFA1_PLuS_HW21x_CycloneIV_v4/
+
+# Historische Modulstaende und die Sicherung von vor dem Umbau
+archive/
+
+# Interne Arbeitsnotizen - die bleiben auf der Werkstattmaschine, nicht im
+# oeffentlichen Repo. CLAUDE.md ist die Kontextdatei fuer den Assistenten,
+# PLAN_Zielstruktur.md haelt fest, warum der Baum so aussieht, VARIANTEN.md
+# verfolgt, welches Board tatsaechlich auf Hardware war. Wie man hier arbeitet,
+# ist dagegen oeffentlich: docs/WORKFLOW.md.
+CLAUDE.md
+PLAN_Zielstruktur.md
+VARIANTEN.md
+
+# Windows-Krempel
+Thumbs.db
+desktop.ini
+
+# HINWEIS: rtl/cyclone_10/*.cmp und rtl/cyclone_iv/*.cmp sind versioniert. Sie
+#          gehoeren zu den Megafunctions (die .qip fuehrt sie als MISC_FILE), ein
+#          frischer Clone braucht sie also - sie sind KEINE Build-Artefakte.
+# HINWEIS: bin/*.jic sind ausgelieferte Staende und bleiben versioniert.
