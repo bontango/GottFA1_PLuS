@@ -56,3 +56,5 @@ VARIANTEN.md - nicht hier.
   hw21x_cyclone_10       9.30   GottFA1_PLuS_v930_roms.jic    2.097.377 B  sha256:F1C923D94E986DBC
   hw21x_cyclone_iv_v3    6.30   GottFA1_PLuS_v630_roms.jic    2.097.375 B  sha256:64AAB9E1ADBA9C15
   hw21x_cyclone_iv_v4    8.30   GottFA1_PLuS_v830_roms.jic    2.097.375 B  sha256:5F10B728DDF67693
+
+2026-10-24  7.30 (hw20x_cyclone_iv_v4) tested successfully on hardware. 9.30, 8.30 and 6.30 not hardware tested yet.
