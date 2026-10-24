@@ -144,6 +144,8 @@ EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserv
   WRITE GAME ROMS, Adresse 0x080000, **ungedreht** (anders als die `.rbf`). Im
   `*_roms.jic` steht das Flash selbst bitgedreht; geprüft über alle 256 KB.
   Auch `*_roms.bin` enthält urheberrechtlich geschützte ROMs (`.gitignore`).
+  **Am 24.10.2026 auf v7 getestet:** über WLAN geschrieben, ohne SD-Karte `READFL`, das
+  Spiel läuft.
 
 ## Eingangsfilter und Diagnosezähler (seit x.30)
 
