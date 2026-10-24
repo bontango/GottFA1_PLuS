@@ -16,6 +16,14 @@
 # die nicht geteilt wird.
 set_global_assignment -name VHDL_FILE variant_pkg.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/version_pkg.vhd
+# FA-Control (rtl/fa_control/, aus SternFA). In JEDER Variante gelistet, gebaut nur
+# bei HAS_ESP32: Quartus loest Entity-Verweise auch im nicht genommenen Zweig eines
+# if..generate auf (Error 10481). Die Boards ohne ESP zahlen Uebersetzungszeit,
+# keine Logik.
+set_global_assignment -name VHDL_FILE ../../rtl/fa_control/fa_control_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/fa_control/uart_rx.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/fa_control/uart_tx.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/fa_control/fa_control.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/SB_Test_SYS1.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65_Pack.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65_MCode.vhd

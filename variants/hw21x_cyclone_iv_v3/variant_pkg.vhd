@@ -16,4 +16,8 @@ package variant_pkg is
 	-- (EP4CE6) liefert 2.097.375 Byte. Von diesem Board wurde nie etwas
 	-- ausgeliefert, die neue Kennung bricht also keine Historie.
 	constant BOARD_ID : character := '6';
+	-- ESP32-C3 mit FA-Control (rtl/fa_control). Nur das Cyclone-IV-Board v7 traegt
+	-- das Modul (X7); alle anderen bauen gen_no_fa_control, FA_RXD/FA_TXD/FA_CTRL_REQ
+	-- sind dort VIRTUAL_PIN.
+	constant HAS_ESP32 : boolean := false;
 end package variant_pkg;

@@ -71,6 +71,7 @@ use ieee.std_logic_unsigned.all;
 -- Was dieses Board ist, und welche Software darauf laeuft:
 use work.variant_pkg.all;   -- BOARD_ID
 use work.version_pkg.all;   -- SW_SUB
+use work.fa_control_pkg.all;  -- fa_nibble_array_t, rtl/fa_control/
 
 entity SYS1 is
 	port(
@@ -143,7 +144,13 @@ entity SYS1 is
 		FLASH_DCLK		: 	out 	std_logic;
 		FLASH_NCS		: 	out 	std_logic;
 		FLASH_ASDO		: 	out 	std_logic;	-- data into the flash
-		FLASH_DATA0		: 	in 	std_logic	-- data out of the flash
+		FLASH_DATA0		: 	in 	std_logic;	-- data out of the flash
+
+		-- FA-Control: ESP32-C3 Supermini on X7 of the Cyclone IV board v7. Only
+		-- hw20x_cyclone_iv_v7 has it (HAS_ESP32); everywhere else VIRTUAL_PIN.
+		FA_RXD			:	in		std_logic;	-- R3, from the ESP's TX (GPIO7)
+		FA_TXD			:	out	std_logic;	-- T2, to the ESP's RX (GPIO6)
+		FA_CTRL_REQ		:	in		std_logic	-- N3, active low, weak pull-up
 
 
 		);
@@ -332,6 +339,50 @@ signal sb_status		: string (1 to 2);
 signal dfp_clk		: std_logic; 
 signal sound_3tone		: std_logic; 
 signal sound_multi		: std_logic; 
+-- ---------------------------------------------------------------------------
+-- FA-Control (rtl/fa_control): LISY slave for the ESP32-C3 on X7 of board v7.
+-- BUILT ONLY WHERE HAS_ESP32 IS TRUE (variant_pkg). Everywhere else
+-- gen_no_fa_control ties fa_active to '0', synthesis removes every mux below and
+-- the netlist stays as it was - that is the acceptance criterion.
+--
+-- While the ESP has control, the PPS/4 CPU alone is held in reset; the I/O chips
+-- keep running, so r10788 goes on scanning the displays. Lamps, solenoids, sound
+-- and the switch strobes come from here instead. Releasing control restarts the
+-- game. Taking over needs nothing at the machine: no option DIP is free on
+-- GottFA1 (all four S2 and all three sound DIPs are in use), so ctrl_allow = '1'.
+--
+-- Numbering as LISY1 (lisy_5_28/src/lisy/lisy1.c), i.e. as the machine's manual:
+--   lamps    0..35  = Q1..Q36, latch DS1..DS9, lamp n on DS(n/4+1) bit n mod 4;
+--                     DS1 carries the relays (Q1 game over, Q2 tilt, ...)
+--   switches 10*return + strobe: 00..04, 10..14, ... 70..74 (gaps stay open)
+--   coils    1..8   = solenoids(0..7); 3/4/5 double as the 10/100/1000 sound lines
+--   sounds   1..7   = Sound_10/100/1K as bit 0/1/2 of the sound number
+-- ---------------------------------------------------------------------------
+constant FA_N_LAMPS	: integer := 36;
+constant FA_N_SOL	: integer := 8;
+constant FA_N_SW	: integer := 75;	-- 10 * 7 + 4 + 1
+constant FA_N_DISP	: integer := 5;		-- 0 = status (4 digits), 1..4 = player
+constant FA_DIGITS	: integer := 6;
+signal fa_active	: std_logic;
+signal fa_sw_state	: std_logic_vector(FA_N_SW - 1 downto 0) := (others => '0');
+signal fa_lamp_ovr	: std_logic_vector(FA_N_LAMPS - 1 downto 0);
+signal fa_sol_ovr	: std_logic_vector(FA_N_SOL - 1 downto 0);
+signal fa_disp_ovr	: fa_nibble_array_t(0 to FA_N_DISP * FA_DIGITS - 1);
+signal fa_snd_ovr	: std_logic_vector(3 downto 0);
+signal fa_snd_en	: std_logic;
+signal fa_ld		: std_logic_vector(3 downto 0);
+signal fa_ds		: std_logic_vector(3 downto 0);
+signal fa_sw_strobe	: std_logic_vector(4 downto 0);
+signal fa_disp_A	: std_logic_vector(3 downto 0);
+signal fa_disp_B	: std_logic_vector(3 downto 0);
+signal game_sw_strobe	: std_logic_vector(4 downto 0);
+signal cpu_reset_l	: std_logic;
+signal disp_blank	: std_logic;
+signal disp_in_A	: std_logic_vector(3 downto 0);
+signal disp_in_B	: std_logic_vector(3 downto 0);
+signal Sound_10_g	: std_logic;
+signal Sound_100_g	: std_logic;
+signal Sound_1K_g	: std_logic;
 signal Sound_10		: std_logic; 
 signal Sound_100		: std_logic; 
 signal Sound_1K		: std_logic; 
@@ -406,9 +457,9 @@ port map(
 	);
 	
 -- display bm switch
-disp_seg_A <= bm_disp_seg_A when game_running = '0' else game_disp_seg_A;
-disp_seg_B <= bm_disp_seg_B when game_running = '0' else game_disp_seg_B;
-disp_strobes <= bm_disp_strobes when game_running = '0' else game_disp_strobes;
+disp_seg_A <= bm_disp_seg_A when game_running = '0' and fa_active = '0' else game_disp_seg_A;
+disp_seg_B <= bm_disp_seg_B when game_running = '0' and fa_active = '0' else game_disp_seg_B;
+disp_strobes <= bm_disp_strobes when game_running = '0' and fa_active = '0' else game_disp_strobes;
 	
 CONVB: entity work.byte_to_decimal
 port map(
@@ -515,7 +566,7 @@ U1: entity work.PPS4 -- Rockwell PPS4/2
 port map(
 	clk_fast => clk_50,
 	clk     			=> cpu_clk,
-	reset   			=> reset_l,
+	reset   			=> cpu_reset_l,	-- reset_l, plus held while FA-Control is in charge
 	w_io				=> cpu_w_io,	
 	io_cmd			=> io_cmd,
 	io_data			=> io_data,
@@ -672,7 +723,7 @@ port map(
 
 		  io_port_in(7 downto 0)  => "00000000",		  
 		  io_port_in(15 downto 8)  => sw_return_intern,		
-		  io_port_out( 4 downto 0) => sw_strobe,
+		  io_port_out( 4 downto 0) => game_sw_strobe,
 		  io_port_out( 15 downto 5) => open
 	);	
 	
@@ -693,6 +744,7 @@ port map(
 		  group_A => display_group_A,
 		  group_B => display_group_B,
 		  strobes => game_disp_strobes,
+		  blank_o => disp_blank,
 		  
 		  is_tube => sw2_dips(2)   --adjust timing for display via options dip3
 
@@ -702,14 +754,14 @@ port map(
 --SN7448 'with h segment'
 sn7448_1: entity work.sn7448_wh
 port map(   
-	Din 	=> display_group_A,
+	Din 	=> disp_in_A,
 	Dout  => game_disp_seg_A
 );
 
 
 sn7448_2: entity work.sn7448_wh
 port map(   
-	Din 	=> display_group_B,
+	Din 	=> disp_in_B,
 	Dout  => game_disp_seg_B
 );
 
@@ -944,9 +996,11 @@ game_gtb_dips <= GTB_dips when gtb_dips_save(23)='1' else
 					  gtb_dips_save(23 downto 16) when game_ds = "0010" else
 					  "11111111";
 
-ld <= attract_ld when (attract_running='1' and gtb_dips_save(23)='0') else game_ld;
+ld <= fa_ld when fa_active = '1' else
+      attract_ld when (attract_running='1' and gtb_dips_save(23)='0') else game_ld;
 
-ds <= gtb_dips_ds when gtb_dips_red='0' else
+ds <= fa_ds when fa_active = '1' else
+	   gtb_dips_ds when gtb_dips_red='0' else
 	   attract_ds when (attract_running='1' and gtb_dips_save(23)='0')
 		else game_ds;
 
@@ -1038,7 +1092,7 @@ port map(
 audio_o <= sound_3tone when unsigned(not sw1_dips) <= 8 else sound_multi;
 
 -- inverter in original design
-solenoids <= not solenoids_intern;
+solenoids <= not fa_sol_ovr when fa_active = '1' else not solenoids_intern;
 
 --test integrated soundboard	
 SB_Test_SYS1: entity work.SB_Test_SYS1
@@ -1055,9 +1109,12 @@ port map(
 	  test_active  => sb_test_active
 	  );
 	  
-Sound_10 <= solenoids_intern(2) when sb_test_active='0' else SB_Test_Sound_10;
-Sound_100 <= solenoids_intern(3) when sb_test_active='0' else SB_Test_Sound_100;
-Sound_1K <= solenoids_intern(4) when sb_test_active='0' else SB_Test_Sound_1K;
+Sound_10_g <= solenoids_intern(2) when sb_test_active='0' else SB_Test_Sound_10;
+Sound_100_g <= solenoids_intern(3) when sb_test_active='0' else SB_Test_Sound_100;
+Sound_1K_g <= solenoids_intern(4) when sb_test_active='0' else SB_Test_Sound_1K;
+Sound_10  <= fa_snd_ovr(0) and fa_snd_en when fa_active = '1' else Sound_10_g;
+Sound_100 <= fa_snd_ovr(1) and fa_snd_en when fa_active = '1' else Sound_100_g;
+Sound_1K  <= fa_snd_ovr(2) and fa_snd_en when fa_active = '1' else Sound_1K_g;
 SB_game_over <= not game_over_relay when sb_test_active='0' else not sb_test_active;
 
 -- cpu clock 
@@ -1084,5 +1141,194 @@ port map(
          txd => Audio_RX		
 );
 	
+------------------------------------------------------------------------------
+-- FA-Control. The muxes above are unconditional on purpose: without the ESP,
+-- fa_active is the constant '0' and synthesis removes them.
+------------------------------------------------------------------------------
+cpu_reset_l <= reset_l and not fa_active;
+sw_strobe   <= fa_sw_strobe when fa_active = '1' else game_sw_strobe;
+
+disp_in_A <= "1111" when fa_active = '1' and disp_blank = '1' else
+             fa_disp_A when fa_active = '1' else display_group_A;
+disp_in_B <= "1111" when fa_active = '1' and disp_blank = '1' else
+             fa_disp_B when fa_active = '1' else display_group_B;
+
+gen_fa_control: if HAS_ESP32 generate
+
+	signal lamp_cnt   : integer range 0 to 4999 := 0;	-- 100 us per phase
+	signal lamp_phase : integer range 0 to 2 := 0;
+	signal lamp_latch : integer range 1 to 9 := 1;
+	signal sw_cnt     : integer range 0 to 49999 := 0;	-- 1 ms per strobe
+	signal sw_slot    : integer range 0 to 4 := 0;
+	signal game_no    : integer range 0 to 15;
+	signal game_bcd   : std_logic_vector(11 downto 0);
+
+begin
+
+FAC: entity work.fa_control
+generic map(
+	CLKS_PER_BIT => 434,		-- 50 MHz / 115200 baud
+	HW_NAME      => "GottFA1",
+	API_VER      => "0.12",
+	N_LAMPS      => FA_N_LAMPS,
+	N_SOL        => FA_N_SOL,
+	N_SOUNDS     => 8,
+	N_SW         => FA_N_SW,
+	N_DISP       => FA_N_DISP,
+	DISP_TYPE    => 1,		-- BCD7
+	DISP_DIGITS  => (4, 6, 6, 6, 6, 0, 0),
+	MAX_LAMPS    => FA_N_LAMPS,
+	MAX_SOL      => FA_N_SOL,
+	MAX_SW       => FA_N_SW,
+	MAX_DIGITS   => FA_DIGITS,
+	GAME_DIGITS  => 3		-- FA-Control files names/roms under GottFA1/<nnn>
+	)
+port map(
+	clk         => clk_50,
+	reset       => not reset_sw_stable,
+	rxd         => FA_RXD,
+	txd         => FA_TXD,
+	ctrl_req    => FA_CTRL_REQ,
+	ctrl_allow  => '1',		-- no option DIP left, see the constant block
+	ctrl_active => fa_active,
+	ver_main    => std_logic_vector(to_unsigned(character'pos(BOARD_ID) - 48, 4)),
+	ver_sub1    => std_logic_vector(to_unsigned(character'pos(SW_SUB(1)) - 48, 4)),
+	ver_sub2    => std_logic_vector(to_unsigned(character'pos(SW_SUB(2)) - 48, 4)),
+	game_info   => game_bcd,
+	sw_state    => fa_sw_state,
+	lamp_ovr    => fa_lamp_ovr,
+	sol_ovr     => fa_sol_ovr,
+	disp_ovr    => fa_disp_ovr,
+	snd_ovr     => fa_snd_ovr,
+	snd_en      => fa_snd_en
+	);
+
+-- game number as selected with S1, the same index SD_Card and Flash_ROM use
+game_no  <= to_integer(unsigned(not sw1_dips));
+game_bcd <= "0000" & "0001" & std_logic_vector(to_unsigned(game_no, 4) - 10) when game_no >= 10 else
+            "0000" & "0000" & std_logic_vector(to_unsigned(game_no, 4));
+
+-- Lamps. A 74175 per DS line takes LD when its 74154 output goes back inactive,
+-- so per latch: LD first with DS0 (no lamp latch), then DS = n, then DS0 again
+-- while LD stays. LD is inverted on the way to the lamps: '0' = lamp on.
+FA_LAMPS: process(clk_50)
+	variable nib : std_logic_vector(3 downto 0);
+begin
+	if rising_edge(clk_50) then
+		nib := (others => '0');
+		for i in 0 to 8 loop
+			if lamp_latch = i + 1 then
+				nib := fa_lamp_ovr(4 * i + 3 downto 4 * i);
+			end if;
+		end loop;
+		if lamp_cnt = 4999 then
+			lamp_cnt <= 0;
+			if lamp_phase = 2 then
+				lamp_phase <= 0;
+				if lamp_latch = 9 then
+					lamp_latch <= 1;
+				else
+					lamp_latch <= lamp_latch + 1;
+				end if;
+			else
+				lamp_phase <= lamp_phase + 1;
+			end if;
+		else
+			lamp_cnt <= lamp_cnt + 1;
+		end if;
+		case lamp_phase is
+			when 0 =>      fa_ld <= not nib; fa_ds <= "0000";
+			when 1 =>      fa_ds <= std_logic_vector(to_unsigned(lamp_latch, 4));
+			when others => fa_ds <= "0000";
+		end case;
+	end if;
+end process;
+
+-- Switch strobes while the CPU is halted: one strobe per millisecond.
+FA_STROBES: process(clk_50)
+begin
+	if rising_edge(clk_50) then
+		if sw_cnt = 49999 then
+			sw_cnt <= 0;
+			if sw_slot = 4 then
+				sw_slot <= 0;
+			else
+				sw_slot <= sw_slot + 1;
+			end if;
+		else
+			sw_cnt <= sw_cnt + 1;
+		end if;
+		for s in 0 to 4 loop
+			if sw_slot = s then
+				fa_sw_strobe(s) <= '1';
+			else
+				fa_sw_strobe(s) <= '0';
+			end if;
+		end loop;
+	end if;
+end process;
+
+-- Switch state, read all the time (FA-Control shows it without control too):
+-- whoever drives the strobes, the returns of an active strobe are taken over.
+-- Exactly one strobe is active at a time, from the game as from FA_STROBES.
+FA_SWITCHES: process(clk_50)
+begin
+	if rising_edge(clk_50) then
+		for s in 0 to 4 loop
+			if sw_strobe(s) = '1' then
+				for r in 0 to 7 loop
+					fa_sw_state(10 * r + s) <= sw_return_stable(r);
+				end loop;
+			end if;
+		end loop;
+	end if;
+end process;
+
+-- Displays, r10788 order: strobe s shows digit s (see boot_message_alpha.vhd).
+--   s 0..5   A = player 1, B = player 3, rightmost digit first
+--   s 8..13  A = player 2, B = player 4, rightmost digit first
+--   s 6/7, 14/15  A = status, B dark
+-- LISY digits arrive left to right: index 0 is the LEFT one.
+-- HW-TUNABLE: the status order (which pair is credits) is a guess.
+FA_DISP: process(game_disp_strobes, fa_disp_ovr)
+	variable s : integer range 0 to 15;
+begin
+	s := to_integer(unsigned(game_disp_strobes));
+	fa_disp_A <= "1111";
+	fa_disp_B <= "1111";
+	case s is
+		when 0 to 5 =>
+			fa_disp_A <= fa_disp_ovr(1 * FA_DIGITS + 5 - s);
+			fa_disp_B <= fa_disp_ovr(3 * FA_DIGITS + 5 - s);
+		when 8 to 13 =>
+			fa_disp_A <= fa_disp_ovr(2 * FA_DIGITS + 13 - s);
+			fa_disp_B <= fa_disp_ovr(4 * FA_DIGITS + 13 - s);
+		when 15 =>     fa_disp_A <= fa_disp_ovr(0);
+		when 14 =>     fa_disp_A <= fa_disp_ovr(1);
+		when 7 =>      fa_disp_A <= fa_disp_ovr(2);
+		when others => fa_disp_A <= fa_disp_ovr(3);	-- 6
+	end case;
+end process;
+
+end generate;
+
+------------------------------------------------------------------------------
+-- Boards without the ESP32. FA_TXD has no pin here (VIRTUAL_PIN), but a declared
+-- output nobody drives is a pin Quartus places and drives anyway; '1' is the idle
+-- level of an UART line.
+------------------------------------------------------------------------------
+gen_no_fa_control: if not HAS_ESP32 generate
+	fa_active    <= '0';
+	FA_TXD       <= '1';
+	fa_ld        <= (others => '0');
+	fa_ds        <= (others => '0');
+	fa_sw_strobe <= (others => '0');
+	fa_sol_ovr   <= (others => '0');
+	fa_snd_ovr   <= (others => '0');
+	fa_snd_en    <= '0';
+	fa_disp_A    <= (others => '1');
+	fa_disp_B    <= (others => '1');
+end generate;
+
 end rtl;
 		

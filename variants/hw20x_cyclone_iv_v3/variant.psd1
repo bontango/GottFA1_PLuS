@@ -9,6 +9,6 @@
     Dormant     = $false
     # Wie hw20x_cyclone_iv_v4: HW v2.0x hat LED_Test, USB_Rx und USB_Tx wirklich auf
     # Pins - deshalb keine virtuellen Pins.
-    VirtualPins = @()
+    VirtualPins = @('FA_RXD', 'FA_TXD', 'FA_CTRL_REQ')
     Notes       = 'Neu seit x.30 (24.10.2026). Pinout aus hw20x_cyclone_iv_v4 ueber die Steckerbelegung der beiden FPGA-Boards umgesetzt; nie auf Hardware getestet.'
 }

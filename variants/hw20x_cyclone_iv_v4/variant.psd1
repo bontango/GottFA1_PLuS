@@ -10,6 +10,6 @@
     # Die einzige Variante, die LED_Test, USB_Rx und USB_Tx wirklich auf Pins hat -
     # deshalb hier keine virtuellen Pins. Die HW-v2.1x-Platinen haben diese drei
     # Anschluesse nicht mehr.
-    VirtualPins = @()
+    VirtualPins = @('FA_RXD', 'FA_TXD', 'FA_CTRL_REQ')
     Notes       = 'Aeltere Platine HW v2.0x. Ausgeliefert als v701 (bin/GottFA1_PLuS_HW20x_v701.jic), Stand 7.01. Bekommt mit dem Umbau die Testtaster-Verdrahtung aus v9.03 neu.'
 }

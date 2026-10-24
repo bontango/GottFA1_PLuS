@@ -42,6 +42,7 @@ entity r10788 is
 		  group_A   : out  std_logic_vector( 3 downto 0); -- Digit data Group A
 		  group_B   : out  std_logic_vector( 3 downto 0); -- Digit data Group B
 		  strobes   : out  std_logic_vector( 3 downto 0);
+		  blank_o   : out  std_logic; -- '1' = dark phase between two digits (ghosting)
 		  
 		  is_tube   : in  std_logic -- switch if we have tube displays or LEDs
         );
@@ -67,6 +68,8 @@ architecture fsm of r10788 is
   signal DISP_REG_B            : DISP_REG_TYPE;		
 	
 begin  --  fsm 
+
+  blank_o <= blanking;
   
   fsm_proc : process ( clk, reset)
   begin  --  process fsm_proc 

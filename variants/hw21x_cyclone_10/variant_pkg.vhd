@@ -12,4 +12,8 @@ package variant_pkg is
 	-- Hier also "V 903 " - Zeichen fuer Zeichen dasselbe, was vorher als Literal
 	-- im Top-Level dieser Variante stand.
 	constant BOARD_ID : character := '9';
+	-- ESP32-C3 mit FA-Control (rtl/fa_control). Nur das Cyclone-IV-Board v7 traegt
+	-- das Modul (X7); alle anderen bauen gen_no_fa_control, FA_RXD/FA_TXD/FA_CTRL_REQ
+	-- sind dort VIRTUAL_PIN.
+	constant HAS_ESP32 : boolean := false;
 end package variant_pkg;

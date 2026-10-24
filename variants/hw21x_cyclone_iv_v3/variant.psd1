@@ -7,7 +7,7 @@
     BinFolder   = 'HW21x_CycloneIV_v3'
     ReleaseArtifact = 'jic'
     Dormant     = $false
-    VirtualPins = @('LED_Test', 'USB_Rx', 'USB_Tx')
+    VirtualPins = @('LED_Test', 'USB_Rx', 'USB_Tx', 'FA_RXD', 'FA_TXD', 'FA_CTRL_REQ')
     # BoardId war frueher '9' und kollidierte damit mit der Cyclone-10-Variante:
     # der Ordner zeigte "V 901", hatte aber nur den 8.01-Code, und das
     # ausgelieferte bin/GottFA1_PLuS_HW21x_v901.jic ist an seiner Dateigroesse

@@ -7,6 +7,6 @@
     BinFolder   = 'HW21x_CycloneIV_v4'
     ReleaseArtifact = 'jic'
     Dormant     = $false
-    VirtualPins = @('LED_Test', 'USB_Rx', 'USB_Tx')
+    VirtualPins = @('LED_Test', 'USB_Rx', 'USB_Tx', 'FA_RXD', 'FA_TXD', 'FA_CTRL_REQ')
     Notes       = 'Ausgeliefert als v801 (bin/GottFA1_PLuS_HW21x_v801.jic), Stand 8.01. Bekommt mit dem Umbau die Testtaster-Verdrahtung aus v9.03 neu - dort zuerst pruefen.'
 }

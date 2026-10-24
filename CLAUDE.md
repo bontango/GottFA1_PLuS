@@ -19,6 +19,7 @@ Pinbelegung, FPGA-Typ und einer Board-Kennung.
 | `hw21x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 8 | `V 803` |
 | `hw20x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 7 | `V 703` |
 | `hw21x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 6 | `V 603` |
+| `hw20x_cyclone_iv_v7` | EP4CE6F17C8 (256-FBGA) | 4 | `V 430` – Board v7 mit ESP32-C3 auf X7, **einzige Variante mit FA-Control** (`HAS_ESP32`), siehe unten |
 | `hw20x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 5 | `V 530` – seit x.30, Pinout aus `hw20x_cyclone_iv_v4` über `Altera_dev_board\pins_Cyclone_II_IV_10.xlsx` umgesetzt, 5.30 auf Hardware erfolgreich getestet |
 
 ## Verzeichnisrollen
@@ -145,6 +146,29 @@ EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserv
 1 ms. **Die Switch-Matrix-Returns nicht filtern** – Strobe-Timing. Die Zähler `R`/`G`
 auf Spieler 4 der Bootanzeige werden nur beim Laden des FPGA gelöscht. Hintergrund
 und Lesart: `docs/Stoerimpulse_Resets.md`.
+
+## FA-Control (seit 24.10.2026, nur `hw20x_cyclone_iv_v7`)
+
+LISY-Slave für den ESP32-C3 (`N:\Projekte\FA_Control`). `rtl/fa_control/` ist eine
+Kopie aus SternFA. Wer dort am Modul etwas ändert, zieht es hier nach.
+
+- **`HAS_ESP32`** in `variant_pkg.vhd` wählt zwischen `gen_fa_control` und
+  `gen_no_fa_control`. Die Muxe im Top-Level sind bewusst unbedingt: Ohne ESP ist
+  `fa_active` konstant `'0'`, und die Netzliste bleibt exakt die alte. **Das ist das
+  Abnahmekriterium** für jede Änderung an diesem Teil (`check.ps1` auf den fünf anderen:
+  `=`).
+- Die Quellen stehen in `files_common.tcl` für alle Varianten. Quartus löst Entities auch
+  im nicht genommenen Generate-Zweig auf (Error 10481).
+- `FA_RXD`/`FA_TXD`/`FA_CTRL_REQ` stehen in allen anderen `variant.psd1` als `VirtualPins`.
+- **Ablauf:** Während der Übernahme steht nur die PPS-4-CPU im Reset (`cpu_reset_l`). Die
+  I/O-Bausteine laufen weiter, `r10788` scannt die Displays. Lampen-Scan,
+  Schalter-Strobes, Spulen und Sound kommen aus `gen_fa_control`. Nach der Freigabe
+  startet das Spiel neu.
+- **`ctrl_allow = '1'`:** Alle vier S2-DIPs und alle drei Sound-DIPs sind belegt.
+- **Nummerierung wie LISY1:** Lampen 0–35 (DS1–9, LD invertiert), Schalter 10×Return +
+  Strobe (`N_SW = 75` mit Lücken), Spulen 1–8, Sound = Bits für 10/100/1000.
+- **Platz:** v7 steht bei 95 % LE. Das ging nur, weil das PPS4-RAM in einem M9K liegt
+  (`PPS4_2.vhd` v0.7). Vorher hätte FA-Control nicht gepasst.
 
 ## Handbücher (seit 24.10.2026)
 
