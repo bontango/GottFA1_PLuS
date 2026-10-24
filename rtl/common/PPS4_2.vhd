@@ -18,6 +18,9 @@
 -- v0.4 LB corrected
 -- v0.5 SAG added (according to pps4.cpp from mame)
 -- v0.6 IOL corrected, now we exchange negated accu
+-- v0.7 internal RAM in a M9K block, clocked by clk_fast (50 MHz). Before it was
+--      1024 registers plus a 256:1 read mux (~970 ALUTs); the asynchronous read
+--      kept Quartus from inferring a RAM (Info 276007).
 --*****************************************************************************
 
 library ieee;
@@ -26,6 +29,7 @@ use ieee.numeric_std.all;
 
 entity pps4 is
   port( clk     : in  std_logic;
+        clk_fast : in std_logic; -- 50 MHz, taktet das interne RAM (M9K)
         reset   : in  std_logic;
         w_io    : out  std_logic; -- write command and IO enable	
 		  io_cmd  : out  std_logic_vector( 3 downto 0); -- cmd to IO device
@@ -121,8 +125,20 @@ architecture fsm of pps4 is
   constant TM_to : integer := 16#FF#;          
   
   -- internal RAM   
+	-- Liegt in einem M9K-Block statt in 1024 Registern samt 256:1-Lesemux.
+	-- Getaktet mit clk_fast (50 MHz): die Adresse B and m_SAG sind CPU-Register,
+	-- das Lesedatum steht damit zwei schnelle Takte nach jeder CPU-Flanke fest --
+	-- lange vor der naechsten (400 kHz). Fuer die CPU bleibt das Lesen damit so
+	-- "asynchron" wie vorher. Geschrieben wird ueber ram_we/ram_waddr/ram_wdata,
+	-- die an der CPU-Flanke registriert werden; der Block schreibt waehrend des
+	-- ganzen folgenden CPU-Takts (immer dieselben Werte, also harmlos).
 	type RAMTYPE is array (255 downto 0) of std_logic_vector(3 downto 0);
-   signal RAM             : RAMTYPE;	
+   signal RAM             : RAMTYPE;
+	signal ram_addr  : std_logic_vector(11 downto 0);
+	signal ram_q     : std_logic_vector(3 downto 0);
+	signal ram_we    : std_logic := '0';
+	signal ram_waddr : std_logic_vector(7 downto 0);
+	signal ram_wdata : std_logic_vector(3 downto 0);
 	--attribute ramstyle : string;
 	--attribute ramstyle of RAM : signal is "no_rw_check, MLAB";
 	-- to prevent Warning (276020): Inferred RAM node "pps4:U1|RAM_rtl_0" from synchronous design logic.  
@@ -156,6 +172,19 @@ architecture fsm of pps4 is
   signal state : state_t;    
   
 begin  --  fsm 
+
+  ram_addr <= B and m_SAG;
+
+  ram_proc : process (clk_fast)
+  begin
+    if rising_edge(clk_fast) then
+      if ram_we = '1' then
+        RAM(to_integer(unsigned(ram_waddr))) <= ram_wdata;
+      end if;
+      ram_q <= RAM(to_integer(unsigned(ram_addr(7 downto 0))));
+    end if;
+  end process ram_proc;
+
   
   --debug
   accu_debug <= accu;
@@ -188,6 +217,7 @@ begin  --  fsm
 			state <= load_opcode;
 
 		elsif rising_edge( clk) then  -- Synchronous FSM
+			ram_we <= '0';
 
 			case state is
 			  --------------------------------
@@ -220,7 +250,7 @@ begin  --  fsm
 					-- 0x0B - 'AD' Add C,A <- A + M
 					--------------------------------
 					when AD =>  					   
-						Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0) and m_SAG)))) );
+						Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q) );
 					   accu    <= Temp(3 downto 0);
 						carry   <= Temp(4);
 						addr <= PC;
@@ -231,9 +261,9 @@ begin  --  fsm
 					--------------------------------
 					when ADC =>  						
 						if ( carry = '1') then
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))) + 1);
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q) + 1);
 						else 
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))));
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q));
 						end if; 
 					   accu    <= Temp(3 downto 0);
 						carry   <= Temp(4);
@@ -244,12 +274,12 @@ begin  --  fsm
 					-- 0x09 - 'ADSK' Add and skip on carry out C,A <- A + M Skip if C = 1
 					--------------------------------
 					when ADSK =>  					   
-						--Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))) );
+						--Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q) );
 						-- same as ADCSK??? see hint in gts1.c in pinmame
 						if ( carry = '1') then
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))) + 1);
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q) + 1);
 						else 
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))));
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q));
 						end if; 												
 					   accu    <= Temp(3 downto 0);
 						carry   <= Temp(4);
@@ -262,9 +292,9 @@ begin  --  fsm
 					--------------------------------
 					when ADCSK =>  
 						if ( carry = '1') then
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))) + 1);
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q) + 1);
 						else 
-						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)))));
+						 Temp := std_logic_vector( unsigned('0' & accu) + unsigned( ram_q));
 						end if; 						
 					   accu    <= Temp(3 downto 0);
 						carry   <= Temp(4);
@@ -306,7 +336,7 @@ begin  --  fsm
 					-- 0x0D - 'AND' logical AND
 					--------------------------------
 					when PPS4_AND =>  
-						accu <= accu and RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
+						accu <= accu and ram_q;
 						addr <= PC;		
 						m_SAG <= x"FFF";		
 						state <= load_opcode; 	-- next instruction										
@@ -314,7 +344,7 @@ begin  --  fsm
 					-- 0x0F - 'OR' logical OR
 					--------------------------------
 					when PPS4_OR =>  					   
-						accu <= accu or RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
+						accu <= accu or ram_q;
 						addr <= PC;			
 						m_SAG <= x"FFF";		
 						state <= load_opcode; 	-- next instruction	
@@ -322,7 +352,7 @@ begin  --  fsm
 					-- 0x0C - 'EOR' exclusive OR
 					--------------------------------
 					when EOR =>  					   
-						accu <= accu xor RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
+						accu <= accu xor ram_q;
 						addr <= PC;	
 						m_SAG <= x"FFF";				
 						state <= load_opcode; 	-- next instruction	
@@ -383,7 +413,7 @@ begin  --  fsm
 					-- 'LD' Load Accumulator from memory
 					--------------------------------						
 					when LD_from to LD_to =>    						
-						accu <= RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
+						accu <= ram_q;
 						B(6 downto 4) <= B(6 downto 4) xor ( not I(2 downto 0)); --I inverted						
 						addr <= PC;			
 						m_SAG <= x"FFF";		
@@ -393,8 +423,8 @@ begin  --  fsm
 					--------------------------------						
 					when EX_from to EX_to =>    
 					   accu_save := accu; -- preserve accu because Quartus adds some intelligence for ram
-						accu <= RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));						
-						RAM( to_integer(unsigned(B(11 downto 0)and m_SAG))) <= accu_save;
+						accu <= ram_q;						
+						ram_we <= not (ram_addr(11) or ram_addr(10) or ram_addr(9) or ram_addr(8)); ram_waddr <= ram_addr(7 downto 0); ram_wdata <= accu_save;
 						B(6 downto 4) <= B(6 downto 4) xor not(I(2 downto 0)); -- I inverted						
 						addr <= PC;			
 						m_SAG <= x"FFF";		
@@ -404,8 +434,8 @@ begin  --  fsm
 					--------------------------------						
 					when EXD_from to EXD_to =>    	
 						accu_save := accu; -- preserve accu because Quartus adds some intelligence for ram					
-						accu <= RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
-						RAM( to_integer(unsigned(B(11 downto 0)and m_SAG))) <= accu_save;						
+						accu <= ram_q;
+						ram_we <= not (ram_addr(11) or ram_addr(10) or ram_addr(9) or ram_addr(8)); ram_waddr <= ram_addr(7 downto 0); ram_wdata <= accu_save;						
 						B(6 downto 4) <= B(6 downto 4) xor not (I(2 downto 0)); -- I inverted
 						B(3 downto 0) <= std_logic_vector( unsigned(B(3 downto 0)) - 1 );	-- decrement BL						
 						if B(3 downto 0) = "0000" then skip <= '1'; end if; -- we check against 0 as dec is done at end of process						
@@ -455,7 +485,7 @@ begin  --  fsm
 					--------------------------------						
 					when LBUA =>    
 					   B(11 downto 8) <= accu;
-						accu <= RAM( to_integer(unsigned(B(11 downto 0)and m_SAG)));
+						accu <= ram_q;
 						addr <= PC;			
 						m_SAG <= x"FFF";		
 						state <= load_opcode; 	-- next instruction

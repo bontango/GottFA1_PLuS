@@ -513,6 +513,7 @@ port map(
 
 U1: entity work.PPS4 -- Rockwell PPS4/2
 port map(
+	clk_fast => clk_50,
 	clk     			=> cpu_clk,
 	reset   			=> reset_l,
 	w_io				=> cpu_w_io,	
