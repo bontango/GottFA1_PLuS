@@ -18,6 +18,7 @@ set_global_assignment -name TOP_LEVEL_ENTITY SYS1
 set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE6F17C8
 set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
+set_global_assignment -name GENERATE_RBF_FILE ON
 
 # --- gemeinsame globale Assignments -----------------------------------------
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION "13.0 SP1"
