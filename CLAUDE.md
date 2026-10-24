@@ -19,7 +19,7 @@ Pinbelegung, FPGA-Typ und einer Board-Kennung.
 | `hw21x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 8 | `V 803` |
 | `hw20x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 7 | `V 703` |
 | `hw21x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 6 | `V 603` |
-| `hw20x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 5 | `V 530` – seit x.30, Pinout aus `hw20x_cyclone_iv_v4` über `Altera_dev_board\pins_Cyclone_II_IV_10.xlsx` umgesetzt, nie auf Hardware |
+| `hw20x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 5 | `V 530` – seit x.30, Pinout aus `hw20x_cyclone_iv_v4` über `Altera_dev_board\pins_Cyclone_II_IV_10.xlsx` umgesetzt, 5.30 auf Hardware erfolgreich getestet |
 
 ## Verzeichnisrollen
 
