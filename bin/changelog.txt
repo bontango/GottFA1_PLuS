@@ -58,3 +58,9 @@ VARIANTEN.md - nicht hier.
   hw21x_cyclone_iv_v4    8.30   GottFA1_PLuS_v830_roms.jic    2.097.375 B  sha256:5F10B728DDF67693
 
 2026-10-24  7.30 (hw20x_cyclone_iv_v4) tested successfully on hardware. 9.30, 8.30 and 6.30 not hardware tested yet.
+
+2026-10-24 16:02  Version .30
+  New variant hw20x_cyclone_iv_v3: hardware v2.0x with the Cyclone IV board v3 (EP4CE6F17C8), board id 5, same x.30 code as all other boards. Pinout translated from hw20x_cyclone_iv_v4 via the header pinout of the two FPGA boards. Not hardware tested.
+  hw20x_cyclone_iv_v3    5.30   GottFA1_PLuS_v530.jic         2.097.375 B  sha256:00E5430F6672877F
+  WITH game ROMs from GottFA1_SD_Image_v200.img (local use only, *_roms.jic in .gitignore):
+  hw20x_cyclone_iv_v3    5.30   GottFA1_PLuS_v530_roms.jic    2.097.375 B  sha256:2F1025FB83003BBF

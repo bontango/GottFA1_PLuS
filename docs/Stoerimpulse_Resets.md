@@ -1,6 +1,6 @@
 # GottFA1_PLuS – Resets mitten im Spiel durch Spulen-Störimpulse
 
-Stand 24.10.2026, Software x.30 (Anzeige `V 630` / `V 730` / `V 830` / `V 930`).
+Stand 24.10.2026, Software x.30 (Anzeige `V 530` / `V 630` / `V 730` / `V 830` / `V 930`).
 
 ## Das Problem
 
@@ -117,5 +117,5 @@ Für die nächste Platinenrevision, teilweise nachrüstbar:
    x.03 gegen x.30 vergleichen. Oszi an `SW_Reset`, nCONFIG und 3,3 V.
 3. Nach jedem Feld-Reset die Boot-Anzeige notieren lassen (`R..G..`).
 
-Stand x.30: **7.30 (HW v2.0x) am 24.10.2026 erfolgreich in Hardware getestet**, 9.30, 8.30
-und 6.30 noch nicht.
+Stand x.30: **7.30 (HW v2.0x) am 24.10.2026 erfolgreich in Hardware getestet**, 9.30, 8.30,
+6.30 und 5.30 noch nicht.

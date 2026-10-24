@@ -26,6 +26,7 @@
 -- ausgelieferten Cyclone-10-Build derselben Nummer.
 --
 -- Board-Kennungen (historisch gewachsen, beim Umbau nur festgeschrieben):
+--   5 = HW v2.0x Cyclone IV v3 (EP4CE6F17C8)   -- neu seit x.30
 --   6 = HW v2.1x Cyclone IV v3 (EP4CE6F17C8)   -- war faelschlich 9
 --   7 = HW v2.0x Cyclone IV v4 (EP4CE6E22C8)
 --   8 = HW v2.1x Cyclone IV v4 (EP4CE6E22C8)

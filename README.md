@@ -26,6 +26,7 @@ board id — nothing else.
 | `hw21x_cyclone_iv_v4` | hardware v2.1x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 8 | `V 830` |
 | `hw20x_cyclone_iv_v4` | hardware v2.0x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 7 | `V 730` |
 | `hw21x_cyclone_iv_v3` | hardware v2.1x | `EP4CE6F17C8` (Cyclone IV E, 256-FBGA) | 6 | `V 630` |
+| `hw20x_cyclone_iv_v3` | hardware v2.0x | `EP4CE6F17C8` (Cyclone IV E, 256-FBGA) | 5 | `V 530` |
 
 The boot display shows `V <board id><software version>`. The **board id** lives in
 `variants/<name>/variant_pkg.vhd`, the **software version** in
@@ -55,7 +56,7 @@ Hardware v2.0x additionally carries `LED_Test` and a CH340 USB serial header
 
 ## Build
 
-Requires **Quartus Prime Lite 22.1std.2** (all four variants build with it — two chip
+Requires **Quartus Prime Lite 22.1std.2** (all five variants build with it — two chip
 families do not mean two Quartus versions here).
 
 ```powershell

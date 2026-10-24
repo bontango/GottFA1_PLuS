@@ -260,8 +260,9 @@ zu starten (Kapitel 12).</li>
 gegen Störimpulse unter 1 ms gefiltert.</li>
 <li><strong>Diagnosezähler</strong> auf der Startanzeige, Spieler 4
 (Kapitel 5.4).</li>
-<li>Alle vier Platinenvarianten haben denselben Softwarestand: 6.30,
-7.30, 8.30 und 9.30 (Kapitel 9.4).</li>
+<li>Alle fünf Platinenvarianten haben denselben Softwarestand: 5.30,
+6.30, 7.30, 8.30 und 9.30 (Kapitel 9.4). Neu ist 5.30: Hardware v2.0x
+mit der Cyclone-IV-Platine v3.</li>
 </ul>
 <h2 id="2-schnellstart">2. Schnellstart</h2>
 <ol type="1">
@@ -678,15 +679,21 @@ Start auf Spieler 2 erscheint, erkennen Sie, welches Programm läuft.</p>
 <td>EP4CE6F17</td>
 <td><code>HW21x_CycloneIV_v3/GottFA1_PLuS_v630.jic</code></td>
 </tr>
+<tr>
+<td><strong>5.30</strong></td>
+<td>HW v2.0x mit Cyclone-IV-Platine v3</td>
+<td>EP4CE6F17</td>
+<td><code>HW20x_CycloneIV_v3/GottFA1_PLuS_v530.jic</code></td>
+</tr>
 </tbody>
 </table>
 <p>Die Release-Dateien enthalten <strong>keine Spiel-ROMs</strong> im
 Flash. Wie Sie eine Datei mit ROMs bauen, beschreibt Kapitel 11.</p>
 <blockquote>
 <p><strong>Teststand:</strong> 7.30 (HW v2.0x) ist auf einer echten
-Platine erfolgreich getestet. 9.30, 8.30 und 6.30 sind noch nicht in
-Hardware getestet; zuletzt liefen auf diesen Platinen 9.01 und 8.01,
-eine Version 6.xx wurde nie ausgeliefert.</p>
+Platine erfolgreich getestet. 9.30, 8.30, 6.30 und 5.30 sind noch nicht
+in Hardware getestet; zuletzt liefen auf diesen Platinen 9.01 und 8.01,
+die Versionen 6.xx und 5.xx wurden nie ausgeliefert.</p>
 </blockquote>
 <h2 id="10-aufbau-der-sd-karte">10. Aufbau der SD-Karte</h2>
 <p>Weil die Leseroutine für die SD-Karte im FPGA feste Sektornummern
@@ -805,7 +812,8 @@ Quartus Programmer programmieren, mit angekreuztem &#39;Verify&#39; (Kapitel
 </ol>
 <p>Die Variantennamen sind die des Quellbaums:
 <code>hw21x_cyclone_10</code>, <code>hw21x_cyclone_iv_v4</code>,
-<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>.</p>
+<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>,
+<code>hw20x_cyclone_iv_v3</code>.</p>
 <p><strong>Behalten Sie diese Datei für sich.</strong> Sie enthält die
 Spiel-ROMs und darf nicht weitergegeben werden.</p>
 <h2 id="12-resets-mitten-im-spiel">12. Resets mitten im Spiel</h2>

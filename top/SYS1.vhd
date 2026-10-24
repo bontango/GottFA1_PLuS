@@ -53,7 +53,8 @@
 -- Die angezeigte Version setzt sich jetzt zusammen aus
 --     BOARD_ID  aus variants/<name>/variant_pkg.vhd   (6/7/8/9)
 --     SW_SUB    aus rtl/common/version_pkg.vhd        (fuer alle Boards gleich)
--- Board-Kennungen: 6 = HW v2.1x Cyclone IV v3, 7 = HW v2.0x Cyclone IV v4,
+-- Board-Kennungen: 5 = HW v2.0x Cyclone IV v3 (seit x.30),
+--                  6 = HW v2.1x Cyclone IV v3, 7 = HW v2.0x Cyclone IV v4,
 --                  8 = HW v2.1x Cyclone IV v4, 9 = HW v2.1x Cyclone 10.
 -- Ein Release aendert damit genau eine Zahl, und zwar in version_pkg.vhd.
 --

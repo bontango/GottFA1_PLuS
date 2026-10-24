@@ -19,6 +19,7 @@ Pinbelegung, FPGA-Typ und einer Board-Kennung.
 | `hw21x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 8 | `V 803` |
 | `hw20x_cyclone_iv_v4` | EP4CE6E22C8 (144-EQFP) | 7 | `V 703` |
 | `hw21x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 6 | `V 603` |
+| `hw20x_cyclone_iv_v3` | EP4CE6F17C8 (256-FBGA) | 5 | `V 530` – seit x.30, Pinout aus `hw20x_cyclone_iv_v4` über `Altera_dev_board\pins_Cyclone_II_IV_10.xlsx` umgesetzt, nie auf Hardware |
 
 ## Verzeichnisrollen
 
@@ -133,7 +134,7 @@ EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserv
   `quartus_cpf -c gottfa1_roms.cof` → `output_files\gottfa1_roms.jic`. In `bin\` als
   `GottFA1_PLuS_v<nnn>_roms.jic`. `*_roms.jic`/`*_roms.hex` sind in `.gitignore` –
   urheberrechtlich geschützte ROMs gehen nie zu GitHub.
-- Pins: E144 DCLK 12, DATA0 13, nCSO 8, ASDO 6; F17 (`hw21x_cyclone_iv_v3`) H1/H2/D2/C1,
+- Pins: E144 DCLK 12, DATA0 13, nCSO 8, ASDO 6; F17 (`hw21x_cyclone_iv_v3`, `hw20x_cyclone_iv_v3`) H1/H2/D2/C1,
   in `pins.tcl`. Freigabe als normale I/O in `scripts/common_header.tcl`.
 - `MISO` hat seit x.30 den Weak-Pull-up: ohne Karte liest es sicher FF.
 

@@ -268,8 +268,9 @@ sa ligne - typiquement venant d&#39;une bobine sans diode de roue libre en
 filtrés contre les impulsions de moins de 1 ms.</li>
 <li><strong>Compteurs de diagnostic</strong> sur l&#39;affichage de
 démarrage, joueur 4 (chapitre 5.4).</li>
-<li>Les quatre variantes de carte ont le même état logiciel : 6.30,
-7.30, 8.30 et 9.30 (chapitre 9.4).</li>
+<li>Les cinq variantes de carte ont le même état logiciel : 5.30, 6.30,
+7.30, 8.30 et 9.30 (chapitre 9.4). La version 5.30 est nouvelle :
+matériel v2.0x avec la carte Cyclone IV v3.</li>
 </ul>
 <h2 id="2-démarrage-rapide">2. Démarrage rapide</h2>
 <ol type="1">
@@ -689,6 +690,12 @@ joueur 2 au démarrage indique quel programme tourne.</p>
 <td>EP4CE6F17</td>
 <td><code>HW21x_CycloneIV_v3/GottFA1_PLuS_v630.jic</code></td>
 </tr>
+<tr>
+<td><strong>5.30</strong></td>
+<td>HW v2.0x avec carte Cyclone IV v3</td>
+<td>EP4CE6F17</td>
+<td><code>HW20x_CycloneIV_v3/GottFA1_PLuS_v530.jic</code></td>
+</tr>
 </tbody>
 </table>
 <p>Les fichiers de version ne contiennent <strong>aucune rom de
@@ -696,10 +703,10 @@ jeu</strong> dans le flash. La façon de construire un fichier avec les
 roms est décrite au chapitre 11.</p>
 <blockquote>
 <p><strong>État des tests :</strong> la version 7.30 (HW v2.0x) a été
-testée avec succès sur une vraie carte. Les versions 9.30, 8.30 et 6.30
-n&#39;ont pas encore été testées sur le matériel ; les dernières versions
-qui ont tourné sur ces cartes sont 9.01 et 8.01, aucune version 6.xx n&#39;a
-jamais été livrée.</p>
+testée avec succès sur une vraie carte. Les versions 9.30, 8.30, 6.30 et
+5.30 n&#39;ont pas encore été testées sur le matériel ; les dernières
+versions qui ont tourné sur ces cartes sont 9.01 et 8.01, les versions
+6.xx et 5.xx n&#39;ont jamais été livrées.</p>
 </blockquote>
 <h2 id="10-structure-de-la-carte-sd">10. Structure de la carte SD</h2>
 <p>Comme la routine de lecture de la carte SD dans le FPGA lit des
@@ -823,7 +830,8 @@ Programmer à la place du fichier normal, avec « Verify » coché (chapitre
 </ol>
 <p>Les noms de variante sont ceux de l&#39;arborescence source :
 <code>hw21x_cyclone_10</code>, <code>hw21x_cyclone_iv_v4</code>,
-<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>.</p>
+<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>,
+<code>hw20x_cyclone_iv_v3</code>.</p>
 <p><strong>Gardez ce fichier pour vous.</strong> Il contient les roms
 des jeux et ne doit pas être diffusé.</p>
 <h2 id="12-redémarrages-en-pleine-partie">12. Redémarrages en pleine

@@ -1,0 +1,191 @@
+# ---------------------------------------------------------------------------
+# ERZEUGTE DATEI - nicht von Hand aendern.
+#
+# Variante: hw20x_cyclone_iv_v3 - GottFA1_PLuS HW v2.0x mit dem Cyclone-IV-Board v3 (EP4CE6F17C8, 256-FBGA)
+# Erzeugt : scripts\gen_qsf.ps1
+# Quellen : scripts\common_header.tcl, device.tcl, pins.tcl,
+#           scripts\files_common.tcl + files_<family>.tcl + files_<option>.tcl
+#
+# device.tcl / pins.tcl / variant.psd1 oder die Dateilisten aendern, dann
+# gen_qsf.ps1 erneut laufen lassen. Aenderungen direkt in dieser Datei sind
+# beim naechsten Lauf weg - und Quartus schreibt selbst hinein, sobald das
+# Projekt in der IDE offen ist. Deshalb erzeugen check.ps1 und build.ps1 die
+# Datei neu, bevor sie bauen.
+# ---------------------------------------------------------------------------
+
+# --- Board -----------------------------------------------------------------
+set_global_assignment -name TOP_LEVEL_ENTITY SYS1
+set_global_assignment -name FAMILY "Cyclone IV E"
+set_global_assignment -name DEVICE EP4CE6F17C8
+set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.2 Lite Edition"
+
+# --- gemeinsame globale Assignments -----------------------------------------
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "13.0 SP1"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "15:47:39  AUGUST 26, 2020"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 14
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED WITH WEAK PULL-UP"
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to sw_reset
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to reset_sw
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to Button_Test
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SB_Dip_Return
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SB_Test
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+
+# --- Pins -------------------------------------------------------------------
+set_location_assignment PIN_E1 -to clk_50
+set_location_assignment PIN_D9 -to LED_0
+set_location_assignment PIN_C9 -to LED_1
+set_location_assignment PIN_C6 -to LED_2
+set_location_assignment PIN_R1 -to CLK
+set_location_assignment PIN_P1 -to CS_EEprom
+set_location_assignment PIN_K1 -to CS_SDcard
+set_location_assignment PIN_T8 -to disp_seg_A[1]
+set_location_assignment PIN_R9 -to disp_seg_A[2]
+set_location_assignment PIN_T9 -to disp_seg_A[3]
+set_location_assignment PIN_R10 -to disp_seg_A[4]
+set_location_assignment PIN_T10 -to disp_seg_A[5]
+set_location_assignment PIN_T7 -to disp_seg_A[6]
+set_location_assignment PIN_R8 -to disp_seg_A[7]
+set_location_assignment PIN_T14 -to disp_seg_A[8]
+set_location_assignment PIN_R12 -to disp_seg_B[1]
+set_location_assignment PIN_T12 -to disp_seg_B[2]
+set_location_assignment PIN_R13 -to disp_seg_B[3]
+set_location_assignment PIN_T13 -to disp_seg_B[4]
+set_location_assignment PIN_R14 -to disp_seg_B[5]
+set_location_assignment PIN_R11 -to disp_seg_B[6]
+set_location_assignment PIN_T11 -to disp_seg_B[7]
+set_location_assignment PIN_T15 -to disp_seg_B[8]
+set_location_assignment PIN_G15 -to ds[0]
+set_location_assignment PIN_L15 -to ds[1]
+set_location_assignment PIN_L16 -to ds[2]
+set_location_assignment PIN_B13 -to ds[3]
+set_location_assignment PIN_T3 -to GTB_dips[7]
+set_location_assignment PIN_R4 -to GTB_dips[6]
+set_location_assignment PIN_T4 -to GTB_dips[5]
+set_location_assignment PIN_R5 -to GTB_dips[4]
+set_location_assignment PIN_T5 -to GTB_dips[3]
+set_location_assignment PIN_R6 -to GTB_dips[2]
+set_location_assignment PIN_T6 -to GTB_dips[1]
+set_location_assignment PIN_R7 -to GTB_dips[0]
+set_location_assignment PIN_D16 -to ld[3]
+set_location_assignment PIN_D15 -to ld[2]
+set_location_assignment PIN_C16 -to ld[1]
+set_location_assignment PIN_C15 -to ld[0]
+set_location_assignment PIN_P2 -to MISO
+set_location_assignment PIN_L2 -to MOSI
+set_location_assignment PIN_E11 -to solenoids[7]
+set_location_assignment PIN_E10 -to solenoids[6]
+set_location_assignment PIN_A15 -to solenoids[5]
+set_location_assignment PIN_B16 -to solenoids[4]
+set_location_assignment PIN_A14 -to solenoids[3]
+set_location_assignment PIN_A13 -to solenoids[2]
+set_location_assignment PIN_A12 -to solenoids[1]
+set_location_assignment PIN_B14 -to solenoids[0]
+set_location_assignment PIN_L1 -to sw1_dips[3]
+set_location_assignment PIN_D1 -to sw1_dips[2]
+set_location_assignment PIN_C3 -to sw1_dips[1]
+set_location_assignment PIN_B1 -to sw1_dips[0]
+set_location_assignment PIN_A5 -to sw_outhole
+set_location_assignment PIN_B12 -to sw_reset
+set_location_assignment PIN_B6 -to sw_slam
+set_location_assignment PIN_B5 -to sw_return[7]
+set_location_assignment PIN_A4 -to sw_return[6]
+set_location_assignment PIN_A9 -to sw_return[5]
+set_location_assignment PIN_A10 -to sw_return[4]
+set_location_assignment PIN_A11 -to sw_return[3]
+set_location_assignment PIN_A8 -to sw_return[2]
+set_location_assignment PIN_A7 -to sw_return[1]
+set_location_assignment PIN_A6 -to sw_return[0]
+set_location_assignment PIN_B7 -to sw_strobe[4]
+set_location_assignment PIN_B8 -to sw_strobe[3]
+set_location_assignment PIN_B11 -to sw_strobe[2]
+set_location_assignment PIN_B10 -to sw_strobe[1]
+set_location_assignment PIN_B9 -to sw_strobe[0]
+set_location_assignment PIN_D8 -to LED_active
+set_location_assignment PIN_C8 -to LED_SD_Error
+set_location_assignment PIN_P15 -to disp_strobes[0]
+set_location_assignment PIN_P16 -to disp_strobes[1]
+set_location_assignment PIN_N15 -to disp_strobes[2]
+set_location_assignment PIN_N16 -to disp_strobes[3]
+set_location_assignment PIN_B4 -to reset_sw
+set_location_assignment PIN_F16 -to LED_Test
+set_location_assignment PIN_F15 -to Button_Test
+set_location_assignment PIN_G16 -to sw2_dips[3]
+set_location_assignment PIN_J15 -to sw2_dips[2]
+set_location_assignment PIN_J16 -to sw2_dips[1]
+set_location_assignment PIN_K16 -to sw2_dips[0]
+set_location_assignment PIN_N14 -to USB_Tx
+set_location_assignment PIN_R16 -to USB_Rx
+set_location_assignment PIN_L14 -to SB_Test
+set_location_assignment PIN_C2 -to SB_Dip_Return
+set_location_assignment PIN_N2 -to audio_RX
+set_location_assignment PIN_N1 -to audio_o
+set_location_assignment PIN_H1 -to FLASH_DCLK
+set_location_assignment PIN_D2 -to FLASH_NCS
+set_location_assignment PIN_C1 -to FLASH_ASDO
+set_location_assignment PIN_H2 -to FLASH_DATA0
+
+# --- Quellen ----------------------------------------------------------------
+set_global_assignment -name VHDL_FILE variant_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/version_pkg.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SB_Test_SYS1.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65_Pack.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65_MCode.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65_ALU.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/T65/T65.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/RIOT/R6530.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/gentones.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/DFPlayer_Mini_CMD.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/dfp_clk_gen.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/read_SB_dips.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/dac.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SB_cpu_clk_gen.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/Multi_Sound.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/read_sys1_dips.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/attract_cmd.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/detect_sw_sys1.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/detect_sw_trigger_sys1.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/slow_to_fast_clock_bus.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/boot_message_alpha.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/slow_to_fast_clock.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SN74175.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SD_Card.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/Flash_ROM.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/input_filter.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SPI_Master.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/EEprom.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/count_to_zero.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/byte_to_decimal.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/SN7448_wh.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/r10696.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/rA17xx.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/r10788.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/cpu_clk_gen.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/PPS4_2.vhd
+set_global_assignment -name VHDL_FILE ../../top/SYS1.vhd
+set_global_assignment -name SDC_FILE ../../rtl/common/SYS1.sdc
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/attract.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/R5101.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/U5_ROM.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/U4_ROM.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/PGOL_ROM.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/SB_RAM.qip
+set_global_assignment -name QIP_FILE ../../rtl/cyclone_iv/SB_ROM.qip

@@ -258,8 +258,9 @@ restarted the board in the middle of a game (chapter 12).</li>
 filtered against spikes of less than 1 ms.</li>
 <li><strong>Diagnostic counters</strong> on the boot display, player 4
 (chapter 5.4).</li>
-<li>All four board variants show the same software state: 6.30, 7.30,
-8.30 and 9.30 (chapter 9.4).</li>
+<li>All five board variants show the same software state: 5.30, 6.30,
+7.30, 8.30 and 9.30 (chapter 9.4). 5.30 is new: hardware v2.0x with the
+Cyclone IV board v3.</li>
 </ul>
 <h2 id="2-quickstart">2. Quickstart</h2>
 <ol type="1">
@@ -667,15 +668,21 @@ display 2 at boot tells you which program is running.</p>
 <td>EP4CE6F17</td>
 <td><code>HW21x_CycloneIV_v3/GottFA1_PLuS_v630.jic</code></td>
 </tr>
+<tr>
+<td><strong>5.30</strong></td>
+<td>HW v2.0x with Cyclone IV board v3</td>
+<td>EP4CE6F17</td>
+<td><code>HW20x_CycloneIV_v3/GottFA1_PLuS_v530.jic</code></td>
+</tr>
 </tbody>
 </table>
 <p>The release files have <strong>no game roms</strong> in the flash.
 How to build a file with roms is described in chapter 11.</p>
 <blockquote>
 <p><strong>Test status:</strong> 7.30 (HW v2.0x) has been tested
-successfully on a real board. 9.30, 8.30 and 6.30 have not been tested
-in hardware yet; the last versions that ran on those boards are 9.01 and
-8.01, a version 6.xx has never been delivered.</p>
+successfully on a real board. 9.30, 8.30, 6.30 and 5.30 have not been
+tested in hardware yet; the last versions that ran on those boards are
+9.01 and 8.01, versions 6.xx and 5.xx have never been delivered.</p>
 </blockquote>
 <h2 id="10-structure-of-sd-card">10. Structure of SD card</h2>
 <p>Due to limitations of the SD card read routine in the FPGA (it reads
@@ -795,7 +802,8 @@ instead of the normal file, with &#39;Verify&#39; ticked (chapter 9.3).</p></li>
 </ol>
 <p>The variant names are those of the source tree:
 <code>hw21x_cyclone_10</code>, <code>hw21x_cyclone_iv_v4</code>,
-<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>.</p>
+<code>hw20x_cyclone_iv_v4</code>, <code>hw21x_cyclone_iv_v3</code>,
+<code>hw20x_cyclone_iv_v3</code>.</p>
 <p><strong>Keep that file to yourself.</strong> It contains the game
 roms and must not be passed on.</p>
 <h2 id="12-resets-in-the-middle-of-a-game">12. Resets in the middle of a
