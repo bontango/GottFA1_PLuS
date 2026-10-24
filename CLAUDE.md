@@ -112,6 +112,39 @@ funktioniert.** Welches Board zuletzt wirklich auf Hardware lief, steht in
 ein falsches Pinout kann Hardware beschädigen, und `hw21x_cyclone_iv_v3` hat sein
 Pinout noch nie gegen die Platine gesehen.
 
+## Konfigurationsflash als zweite ROM-Quelle (seit x.30, nach WillFA7)
+
+Antwortet keine SD-Karte (`SD_Card` endet im Fehlerzustand, Ausgang `o_no_card`),
+liest `rtl/common/Flash_ROM.vhd` dieselben 16 KByte aus dem EPCS16 und übernimmt
+ROM-Schreibport, `reset_l` und `LED_SD_Error`. Auf allen vier Boards, keine Konstante.
+
+```
+EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserve
+         0x080000 + n*0x4000   Spiel n, 16 KByte, byte-gleich zum SD-Slot
+                               (Sektor 660 + n*32) -> Spiel 0..15 bis 0x0BFFFF
+```
+
+- **Keine CRC**, weder auf der Karte noch im Flash. Geprüft wird nur gegen leeren
+  Flash: das erste Byte des Slots (U5-Adresse 0) darf nicht FF sein, sonst `ERROR`
+  und die CPU startet nicht.
+- Flash-Boot erkennt man an `READFL` statt `READSD` auf Spieler 3.
+- **ROM-Jic:** `scripts\make_flash_hex.ps1 -Image <Kartenimage> -Out
+  variants\<name>\output_files\gottfa1_roms.hex`, dann im Variantenordner
+  `quartus_cpf -c gottfa1_roms.cof` → `output_files\gottfa1_roms.jic`. In `bin\` als
+  `GottFA1_PLuS_v<nnn>_roms.jic`. `*_roms.jic`/`*_roms.hex` sind in `.gitignore` –
+  urheberrechtlich geschützte ROMs gehen nie zu GitHub.
+- Pins: E144 DCLK 12, DATA0 13, nCSO 8, ASDO 6; F17 (`hw21x_cyclone_iv_v3`) H1/H2/D2/C1,
+  in `pins.tcl`. Freigabe als normale I/O in `scripts/common_header.tcl`.
+- `MISO` hat seit x.30 den Weak-Pull-up: ohne Karte liest es sicher FF.
+
+## Eingangsfilter und Diagnosezähler (seit x.30)
+
+`rtl/common/input_filter.vhd`: Synchronisierung plus „N Takte stabil“. `reset_sw`
+50 ms (zugleich Power-on-Reset, `Init_Value '0'`), `sw_slam`/`sw_outhole`/`sw_reset`
+1 ms. **Die Switch-Matrix-Returns nicht filtern** – Strobe-Timing. Die Zähler `R`/`G`
+auf Spieler 4 der Bootanzeige werden nur beim Laden des FPGA gelöscht. Hintergrund
+und Lesart: `docs/Stoerimpulse_Resets.md`.
+
 ## Lizenz
 
 GNU General Public License v3.0 (`LICENSE`); die Quelldateien tragen den

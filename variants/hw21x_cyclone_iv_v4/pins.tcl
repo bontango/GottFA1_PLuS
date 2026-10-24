@@ -86,3 +86,11 @@ set_location_assignment PIN_99 -to SB_Test
 set_location_assignment PIN_11 -to SB_Dip_Return
 set_location_assignment PIN_32 -to audio_RX
 set_location_assignment PIN_33 -to audio_o
+
+# Configuration flash EPCS16 (x.30, rtl/common/Flash_ROM.vhd). The dedicated configuration
+# pins of the 144-EQFP: DCLK 12, DATA0 13, nCSO 8, ASDO 6 - same as WillFA7.
+# Released as regular I/O in scripts/common_header.tcl.
+set_location_assignment PIN_12 -to FLASH_DCLK
+set_location_assignment PIN_8 -to FLASH_NCS
+set_location_assignment PIN_6 -to FLASH_ASDO
+set_location_assignment PIN_13 -to FLASH_DATA0

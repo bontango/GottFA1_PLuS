@@ -56,6 +56,12 @@
 -- Board-Kennungen: 6 = HW v2.1x Cyclone IV v3, 7 = HW v2.0x Cyclone IV v4,
 --                  8 = HW v2.1x Cyclone IV v4, 9 = HW v2.1x Cyclone 10.
 -- Ein Release aendert damit genau eine Zahl, und zwar in version_pkg.vhd.
+--
+-- Version x.30 -- game ROMs from the configuration flash when no SD card answers
+--                 (Flash_ROM.vhd, same 16 KByte per game as on the card, no CRC),
+--                 reset_sw filtered (50 ms), slam/outhole/reset switch filtered (1 ms),
+--                 diagnostic counters for reset and dropped reset pulses on the boot
+--                 display ("R01G37"). See docs/Stoerimpulse_Resets.md.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -128,8 +134,16 @@ entity SYS1 is
 		
 		-- USB serial CH340 - nur HW v2.0x, sonst VIRTUAL_PIN
 		USB_Rx			: 	buffer 	std_logic;
-		USB_Tx			: 	in 	std_logic
-		
+		USB_Tx			: 	in 	std_logic;
+
+		-- configuration flash EPCS16 as second source of the game ROMs, when no SD
+		-- card answers. Dual purpose pins, released as regular I/O after configuration
+		-- (scripts/common_header.tcl). See rtl/common/Flash_ROM.vhd.
+		FLASH_DCLK		: 	out 	std_logic;
+		FLASH_NCS		: 	out 	std_logic;
+		FLASH_ASDO		: 	out 	std_logic;	-- data into the flash
+		FLASH_DATA0		: 	in 	std_logic	-- data out of the flash
+
 
 		);
 end SYS1;
@@ -227,7 +241,36 @@ signal wr_SB_rom1			:  std_logic;
 signal wr_SB_rom2			:  std_logic;
 signal SDcard_MOSI	:	std_logic; 
 signal SDcard_CLK		:	std_logic; 
-signal SDcard_error	:	std_logic; 
+signal SDcard_error	:	std_logic;
+
+-- the ROM write port comes from the SD card, or from the configuration flash when
+-- no card answered (use_flash)
+signal sd_address		:  std_logic_vector(13 downto 0);
+signal sd_data			:  std_logic_vector(7 downto 0);
+signal sd_wr_rom		:  std_logic;
+signal sd_cpu_reset_l	:  std_logic;
+signal sd_error		:  std_logic;
+signal sd_no_card		:  std_logic;
+signal fl_address		:  std_logic_vector(13 downto 0);
+signal fl_data			:  std_logic_vector(7 downto 0);
+signal fl_wr_rom		:  std_logic;
+signal fl_cpu_reset_l	:  std_logic;
+signal fl_error		:  std_logic;
+signal use_flash		:  std_logic;
+
+-- filtered inputs (input_filter.vhd)
+signal reset_sw_glitch	:  std_logic; -- a pulse on reset_sw was too short and dropped
+signal reset_sw_prev		:  std_logic := '0';
+signal sw_reset_f			:  std_logic;
+signal sw_outhole_f		:  std_logic;
+signal sw_slam_f			:  std_logic;
+
+-- diagnostic counters, two decimal digits each, saturating at 99. Only the power-up
+-- value clears them - a reset through reset_sw does not. So after an unexpected
+-- restart the boot display tells: R counted up -> the reset pin was low for 50 ms;
+-- R00 G00 -> the FPGA was configured again (supply dip, nCONFIG spike).
+signal rst_d1, rst_d0	:  integer range 0 to 9 := 0; -- resets through reset_sw
+signal glt_d1, glt_d0	:  integer range 0 to 9 := 0; -- dropped pulses on reset_sw
 
 -- EEprom we use 128Bytes
 signal address_eeprom	:  std_logic_vector(6 downto 0);
@@ -312,8 +355,11 @@ USB_Rx <= '1';                  --UART-Ruhepegel, solange die CH340-Anbindung ni
 -- boot message
 ----------------------
 bm_st1_display2 <= "BY BON" when reset_l = '0' else string'("V ") & BOARD_ID & SW_SUB & " ";
-bm_st1_display3 <= "TANGO " when reset_l = '0' else "READSD";
-bm_st1_display4 <= " 2022 " when reset_l = '0' else "ERROR " when sdcard_error = '0' else "      ";
+bm_st1_display3 <= "TANGO " when reset_l = '0' else "READFL" when use_flash = '1' else "READSD";
+-- diagnostic counters instead of the year, see rst_d1 above
+bm_st1_display4 <= "ERROR " when sdcard_error = '0' else
+						 string'("R") & character'val(rst_d1 + 48) & character'val(rst_d0 + 48)
+						 & "G" & character'val(glt_d1 + 48) & character'val(glt_d0 + 48);
 
 sb_status <= "00" when sb_option(1 to 2) = "00" 
 				 else "01" when sb_option(1 to 2) = "01" 
@@ -373,7 +419,7 @@ port map(
 	);
 
 -- options
-sw_slam_intern <= '1' when sw2_dips(3) = '0' else sw_slam; --slam deactivate with option Dip4 ON
+sw_slam_intern <= '1' when sw2_dips(3) = '0' else sw_slam_f; --slam deactivate with option Dip4 ON
 
 
 -- Address decoding here, 
@@ -525,8 +571,8 @@ port map(
 		  group_A_in => not game_gtb_dips(3 downto 0), --GTB_dips(3 downto 0),
 		  group_B_in => not game_gtb_dips(7 downto 4), --GTB_dips(7 downto 4),		  
 		  group_C_in(0) => '0', --spare
-		  group_C_in(1) => not sw_reset,		  -- no inverter on GottFA1 PCB here
-		  group_C_in(2) => sw_outhole,		  
+		  group_C_in(1) => not sw_reset_f,		  -- no inverter on GottFA1 PCB here
+		  group_C_in(2) => sw_outhole_f,
 		  group_C_in(3) => sw_slam_intern,		  		  
 		  		  
 		  group_A_out => game_ld,
@@ -682,14 +728,47 @@ port map(
 	-- selection	
 	selection => "0000" & not sw1_dips,
 	-- data
-	address_sd_card => address_sd_card,
-	data_sd_card => data_sd_card,
-	wr_rom => wr_rom,
+	address_sd_card => sd_address,
+	data_sd_card => sd_data,
+	wr_rom => sd_wr_rom,
 	-- control CPU & rest of HW
-	cpu_reset_l => reset_l,
+	cpu_reset_l => sd_cpu_reset_l,
 	-- feedback
-	SDcard_error => SDcard_error
-);	
+	SDcard_error => sd_error,
+	o_no_card => sd_no_card
+);
+
+----------------------
+-- configuration flash as fallback
+----------------------
+-- No card answered (SD_Card in its error state) -> read the same 16 KByte from the
+-- flash and take over the ROM write port, the CPU reset and the error LED. Flash
+-- layout in rtl/common/Flash_ROM.vhd, the hex file comes from
+-- scripts/make_flash_hex.ps1. A released .jic without ROMs leaves the slot empty:
+-- the board then shows ERROR exactly as before.
+use_flash <= sd_no_card;
+
+FLASH_ROM: entity work.Flash_ROM
+port map(
+	i_Clk => clk_50,
+	i_Rst_L => sd_no_card,
+	o_Flash_Clk  => FLASH_DCLK,
+	o_Flash_CS_n => FLASH_NCS,
+	o_Flash_MOSI => FLASH_ASDO,
+	i_Flash_MISO => FLASH_DATA0,
+	selection => "0000" & not sw1_dips,
+	address_rom => fl_address,
+	data_rom => fl_data,
+	wr_rom => fl_wr_rom,
+	cpu_reset_l => fl_cpu_reset_l,
+	Flash_error => fl_error
+);
+
+address_sd_card <= fl_address when use_flash = '1' else sd_address;
+data_sd_card    <= fl_data when use_flash = '1' else sd_data;
+wr_rom          <= fl_wr_rom when use_flash = '1' else sd_wr_rom;
+reset_l         <= fl_cpu_reset_l when use_flash = '1' else sd_cpu_reset_l;
+SDcard_error    <= fl_error when use_flash = '1' else sd_error;
 	
 ----------------------
 -- read eeprom, read/write to ram
@@ -794,12 +873,58 @@ port map(
 	rst 	=> game_running
 );
 
-META1: entity work.Cross_Slow_To_Fast_Clock
+-- reset button: low for 50 ms before the board restarts. Up to x.03 a single 20 ns
+-- low sample (a coil spike on the open, weakly pulled up pin) restarted everything.
+-- Init '0': the same filter is the power-on reset, see input_filter.vhd.
+META1: entity work.input_filter
+generic map(
+	Filter_Cycles => 2500000,  -- 50 ms
+	Init_Value => '0'
+	)
 port map(
-   i_D => reset_sw,
+	i_Clk => clk_50,
+	i_D => reset_sw,
 	o_Q => reset_sw_stable,
-   i_Fast_Clk => clk_50
-	); 
+	o_glitch => reset_sw_glitch
+	);
+
+-- the special switches read by U3: 1 ms, the CPU samples them much slower anyway
+FILT_RESET: entity work.input_filter
+generic map( Filter_Cycles => 50000, Init_Value => '1' )
+port map( i_Clk => clk_50, i_D => sw_reset, o_Q => sw_reset_f, o_glitch => open );
+
+FILT_OUTHOLE: entity work.input_filter
+generic map( Filter_Cycles => 50000, Init_Value => '0' )
+port map( i_Clk => clk_50, i_D => sw_outhole, o_Q => sw_outhole_f, o_glitch => open );
+
+FILT_SLAM: entity work.input_filter
+generic map( Filter_Cycles => 50000, Init_Value => '0' )
+port map( i_Clk => clk_50, i_D => sw_slam, o_Q => sw_slam_f, o_glitch => open );
+
+-- diagnostic counters, see the declaration of rst_d1. No reset on purpose.
+DIAG: process(clk_50)
+begin
+	if rising_edge(clk_50) then
+		reset_sw_prev <= reset_sw_stable;
+		-- falling edge of the filtered reset = a reset that went through
+		if reset_sw_prev = '1' and reset_sw_stable = '0' then
+			if rst_d0 /= 9 then
+				rst_d0 <= rst_d0 + 1;
+			elsif rst_d1 /= 9 then
+				rst_d0 <= 0;
+				rst_d1 <= rst_d1 + 1;
+			end if;
+		end if;
+		if reset_sw_glitch = '1' then
+			if glt_d0 /= 9 then
+				glt_d0 <= glt_d0 + 1;
+			elsif glt_d1 /= 9 then
+				glt_d0 <= 0;
+				glt_d1 <= glt_d1 + 1;
+			end if;
+		end if;
+	end if;
+end process;
 
 META2: entity work.Cross_Slow_To_Fast_Clock_Bus
 port map(

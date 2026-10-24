@@ -38,6 +38,8 @@ set_global_assignment -name VHDL_FILE ../../rtl/common/boot_message_alpha.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/slow_to_fast_clock.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/SN74175.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/SD_Card.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/Flash_ROM.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/common/input_filter.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/SPI_Master.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/EEprom.vhd
 set_global_assignment -name VHDL_FILE ../../rtl/common/count_to_zero.vhd

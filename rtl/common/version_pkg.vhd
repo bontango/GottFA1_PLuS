@@ -37,6 +37,7 @@ package version_pkg is
 	-- Zwei Ziffern, weil die Anzeige "V bss " genau sechs Zeichen breit ist.
 	-- Die Schrittfolge ist ueber alle Boards dieselbe: x.01 war "test button
 	-- produces sound", x.02 "dfp player activated with active signal",
-	-- x.03 "moved Button_Test to SB_Test".
-	constant SW_SUB : string(1 to 2) := "03";
+	-- x.03 "moved Button_Test to SB_Test", x.30 "game roms from the configuration
+	-- flash, reset filter and diagnostic counters".
+	constant SW_SUB : string(1 to 2) := "30";
 end package version_pkg;

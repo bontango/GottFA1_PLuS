@@ -27,3 +27,32 @@ Board-IDs: 6 = HW v2.1x Cyclone IV v3 (EP4CE6F17C8, 256-FBGA)
 
 Welches Board mit welchem Stand tatsaechlich auf Hardware lief, steht in
 VARIANTEN.md - nicht hier.
+
+2026-10-24 12:28  Version .30
+  x.30: game ROMs from the configuration flash (EPCS16) when no SD card answers, no CRC; reset button filtered (50 ms), slam/outhole/reset switch filtered (1 ms); diagnostic counters R/G on the boot display. Not hardware tested.
+  hw20x_cyclone_iv_v4    7.30   GottFA1_PLuS_v730.jic         2.097.375 B  sha256:100EFB2996800F17
+  hw21x_cyclone_10       9.30   GottFA1_PLuS_v930.jic         2.097.377 B  sha256:ED793AEE1122F60C
+  hw21x_cyclone_iv_v3    6.30   GottFA1_PLuS_v630.jic         2.097.375 B  sha256:9094A86522BAB6E8
+  hw21x_cyclone_iv_v4    8.30   GottFA1_PLuS_v830.jic         2.097.375 B  sha256:BE102ACA494F3166
+
+  Details x.30 (all boards, display V 630 / V 730 / V 830 / V 930):
+  - Game ROMs from the FPGA configuration flash (EPCS16): when no SD card answers, the
+    same 16 KByte per game are read from flash address 080000h + game * 4000h
+    (rtl/common/Flash_ROM.vhd). No CRC check, only a check against an empty slot
+    (first byte FF -> ERROR). Boot from flash shows READFL instead of READSD.
+  - Reset button: has to be low for 50 ms (rtl/common/input_filter.vhd). Before, a
+    single 20 ns spike on the pin restarted the board - the most likely cause of the
+    "reset in the middle of a game" reports (coils without flyback diode).
+  - Slam, outhole and Gottlieb reset switch: 1 ms glitch filter.
+  - Diagnostic counters on the boot display, player 4: "R01G37" = resets through the
+    reset button / dropped short pulses on it. Cleared only at power-up, so R00G00
+    after an unexpected restart means the FPGA was reconfigured (supply dip, nCONFIG).
+  - MISO with weak pull-up.
+  - Background and hardware recommendations: docs/Stoerimpulse_Resets.md.
+  Without game ROMs (flash fallback empty, needs an SD card as before): the four files above.
+  WITH game ROMs from GottFA1_SD_Image_v200.img, games 0..15 - local use only, not on
+  GitHub (copyrighted ROMs, *_roms.jic in .gitignore):
+  hw20x_cyclone_iv_v4    7.30   GottFA1_PLuS_v730_roms.jic    2.097.375 B  sha256:AC908DB176281E58
+  hw21x_cyclone_10       9.30   GottFA1_PLuS_v930_roms.jic    2.097.377 B  sha256:F1C923D94E986DBC
+  hw21x_cyclone_iv_v3    6.30   GottFA1_PLuS_v630_roms.jic    2.097.375 B  sha256:64AAB9E1ADBA9C15
+  hw21x_cyclone_iv_v4    8.30   GottFA1_PLuS_v830_roms.jic    2.097.375 B  sha256:5F10B728DDF67693

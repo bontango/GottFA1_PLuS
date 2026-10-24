@@ -8,6 +8,9 @@
 -- v01 added feedback on successfull SD card read
 -- v02 synchronous reset
 -- v03 extended CMD to 14 bytes, added second R1 position (needed for some cards), added error state
+-- v04 new output o_no_card: '1' while the read has ended in the error state, i.e. no card
+--     answered or its init failed (every error of this loader is an init error, there is
+--     no CRC check). Starts the flash fallback (Flash_ROM.vhd). 10.2026
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -34,7 +37,9 @@ use IEEE.numeric_std.all;
 		-- start CPU
 		cpu_reset_l : out STD_LOGIC;
 		-- feedback
-		SDcard_error : out STD_LOGIC
+		SDcard_error : out STD_LOGIC;
+		-- '1' = no usable card, see v04. Stays '1', the error state is final.
+		o_no_card : out STD_LOGIC
 		);
     end SD_Card;
 	 
@@ -93,6 +98,9 @@ use IEEE.numeric_std.all;
 	SS_A when active_master = "01"  else
 	'0' when active_master = "10" else
 	'1';
+
+	-- see v04
+	o_no_card <= '1' when state_A = error else '0';
 	
 	
 SD_CARD_ACCESS: entity work.SPI_Master

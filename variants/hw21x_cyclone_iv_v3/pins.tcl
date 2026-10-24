@@ -86,3 +86,11 @@ set_location_assignment PIN_F16 -to SB_Test
 set_location_assignment PIN_C2 -to SB_Dip_Return
 set_location_assignment PIN_N2 -to audio_RX
 set_location_assignment PIN_N1 -to audio_o
+
+# Configuration flash EPCS16 (x.30, rtl/common/Flash_ROM.vhd). The dedicated configuration
+# pins of the 256-FBGA: DCLK H1, DATA0 H2, nCSO D2, ASDO C1 - same as WillFA7.
+# Released as regular I/O in scripts/common_header.tcl.
+set_location_assignment PIN_H1 -to FLASH_DCLK
+set_location_assignment PIN_D2 -to FLASH_NCS
+set_location_assignment PIN_C1 -to FLASH_ASDO
+set_location_assignment PIN_H2 -to FLASH_DATA0

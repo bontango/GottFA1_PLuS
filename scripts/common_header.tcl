@@ -28,6 +28,13 @@ set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
 set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
 set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+# Since x.30 the configuration flash is the second source of the game ROMs
+# (rtl/common/Flash_ROM.vhd), so its pins become ordinary I/O once the FPGA is
+# configured. All four boards carry an EPCS16. ASDO is released above.
+set_global_assignment -name RESERVE_DATA0_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DATA1_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_FLASH_NCE_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_DCLK_AFTER_CONFIGURATION "USE AS REGULAR IO"
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
@@ -38,5 +45,8 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to reset_sw
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to Button_Test
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SB_Dip_Return
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to SB_Test
+# x.30: without a card MISO floats. With the pull-up it reads FF, CMD0 fails for sure
+# and the flash fallback starts.
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
