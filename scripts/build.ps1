@@ -18,10 +18,10 @@
   liefert 2.097.375 Byte, Cyclone 10 (10CL006Y) 2.097.377 Byte. Gleiche Groesse bei
   ungleicher Familie hiesse, zwei .cof zeigen auf dasselbe Board.
 
-  ExtraArtifacts in variant.psd1 (heute nur 'rbf' bei hw20x_cyclone_iv_v7) erzeugt
-  Quartus selbst, ueber eine Assignment-Zeile in device.tcl. Hier wird nur geprueft,
-  dass die Datei da ist und aus DIESEM Compile stammt - eine alte .rbf neben einer
-  neuen .sof waere ein falsches Release.
+  Eine .rbf - als ReleaseArtifact (hw20x_cyclone_iv_v7, Board ohne JTAG-Stecker)
+  oder in ExtraArtifacts - erzeugt Quartus selbst, ueber GENERATE_RBF_FILE in
+  device.tcl. Hier wird nur geprueft, dass die Datei da ist und aus DIESEM Compile
+  stammt - eine alte .rbf neben einer neuen .sof waere ein falsches Release.
 
 .PARAMETER Variant
   Ordnername unter variants\, z. B. hw21x_cyclone_10.
@@ -67,10 +67,11 @@ try {
     if (-not (Test-Path $sof)) { throw "Compile meldet Erfolg, aber $sof fehlt" }
     Write-Host '  .sof ok' -ForegroundColor Green
 
-    foreach ($ext in @($meta.ExtraArtifacts)) {
-        if (-not $ext) { continue }
+    $fromQuartus = @($meta.ExtraArtifacts | Where-Object { $_ })
+    if ($meta.ReleaseArtifact -eq 'rbf') { $fromQuartus = @('rbf') + $fromQuartus }
+    foreach ($ext in ($fromQuartus | Select-Object -Unique)) {
         $extra = Join-Path $VarDir "output_files\$Project.$ext"
-        if (-not (Test-Path $extra)) { throw "ExtraArtifacts nennt '$ext', aber $extra fehlt (Assignment in device.tcl?)" }
+        if (-not (Test-Path $extra)) { throw "variant.psd1 nennt '$ext', aber $extra fehlt (GENERATE_RBF_FILE in device.tcl?)" }
         if ((Get-Item $extra).LastWriteTime -lt $compileStart) { throw "$extra ist aelter als dieser Compile - nicht aus diesem Lauf" }
         Write-Host ("  .{0} ok ({1:N0} Byte)" -f $ext, (Get-Item $extra).Length) -ForegroundColor Green
     }

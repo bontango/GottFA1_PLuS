@@ -175,10 +175,13 @@ Kopie aus SternFA. Wer dort am Modul etwas ändert, zieht es hier nach.
 - **`ctrl_allow = '1'`:** Alle vier S2-DIPs und alle drei Sound-DIPs sind belegt.
 - **Nummerierung wie LISY1:** Lampen 0–35 (DS1–9, LD invertiert), Schalter 10×Return +
   Strobe (`N_SW = 75` mit Lücken), Spulen 1–8, Sound = Bits für 10/100/1000.
-- **`.rbf` für den ESP:** `GENERATE_RBF_FILE ON` in `device.tcl` der v7, dazu
-  `ExtraArtifacts = @('rbf')` in `variant.psd1`. `build.ps1` prüft, dass die Datei aus
-  dem aktuellen Compile stammt, `release.ps1` legt sie neben die `.jic` nach
-  `bin\HW20x_CycloneIV_v7\GottFA1_PLuS_v4<SW_SUB>.rbf`. Der Assembler schreibt sie
+- **Release = `.rbf`, keine `.jic`:** Board v7 hat keinen JTAG-Stecker, programmiert
+  wird nur über den ESP32. `ReleaseArtifact = 'rbf'` in `variant.psd1`,
+  `GENERATE_RBF_FILE ON` in `device.tcl`. `build.ps1` prüft, dass die `.rbf` aus dem
+  aktuellen Compile stammt. `release.ps1 -RomImage <Kartenimage>` legt dazu
+  `GottFA1_PLuS_v4<SW_SUB>_roms.bin` (roher ROM-Bereich, nur lokal) nach
+  `bin\HW20x_CycloneIV_v7\`. Bei den Boards mit `.jic` erzeugt derselbe Schalter die
+  `_roms.jic`. Der Build ist reproduzierbar: gleiche Quelle ergibt eine hash-gleiche `.rbf`. Der Assembler schreibt sie
   **komprimiert** (~156 KB statt 368 KB). Das Cyclone IV entpackt sie im AS-Modus
   selbst, am 24.10.2026 über den ESP geschrieben und gebootet. Eingespielt wird sie in
   FA-Control über Kachel 09 FPGA (REVERSE BITS an) oder

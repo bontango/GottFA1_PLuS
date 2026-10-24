@@ -5,10 +5,11 @@
     RtlFamily   = 'cyclone_iv'
     Options     = @()
     BinFolder   = 'HW20x_CycloneIV_v7'
-    ReleaseArtifact = 'jic'
-    # Zusaetzlich nach bin\: die .rbf fuer den ESP32 auf X7 (GENERATE_RBF_FILE in
-    # device.tcl). build.ps1 prueft, dass sie aus dem aktuellen Compile stammt.
-    ExtraArtifacts = @('rbf')
+    # Board v7 hat keinen JTAG-Stecker mehr: programmiert wird nur ueber den ESP32 auf
+    # X7 (FA_Control, Kachel 09 FPGA). Das Release ist deshalb die .rbf
+    # (GENERATE_RBF_FILE in device.tcl), keine .jic. build.ps1 prueft, dass sie aus
+    # dem aktuellen Compile stammt.
+    ReleaseArtifact = 'rbf'
     Dormant     = $false
     # Wie hw20x_cyclone_iv_v3: LED_Test, USB_Rx, USB_Tx liegen auf echten Pins.
     # FA_RXD/FA_TXD/FA_CTRL_REQ ebenfalls - nur dieses Board hat den ESP32.

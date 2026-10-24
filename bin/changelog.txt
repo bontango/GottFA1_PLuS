@@ -71,3 +71,8 @@ VARIANTEN.md - nicht hier.
   Erstes Release fuer das Cyclone-IV-Board v7 (V 430): FA-Control ueber den ESP32-C3 auf X7, PPS4-RAM im M9K. Auf v7 getestet: Boot von SD und ohne SD (READFL, ROMs ueber WLAN geschrieben), FA-Control-Connect, Displays. Lampen/Spulen/Schalter/Sound unter FA-Control ungetestet.
   hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.jic         2.097.375 B  sha256:A49B70F74B3BA1B9
   hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.rbf           156.068 B  sha256:D2BC38AF069F81F9
+
+2026-10-24 19:42  Version .30
+  Ersetzt den Eintrag 19:36: Board v7 hat keinen JTAG-Stecker, programmiert wird nur ueber den ESP32 - Release ist die .rbf (WRITE) plus _roms.bin (WRITE GAME ROMS, 0x080000, nur lokal). Inhalt unveraendert: FA-Control, PPS4-RAM im M9K; getestet Boot von SD und ohne SD (READFL), FA-Control-Connect, Displays.
+  hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.rbf           156.068 B  sha256:D2BC38AF069F81F9
+  hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430_roms.bin      262.144 B  sha256:EF61146D47E2F1AA

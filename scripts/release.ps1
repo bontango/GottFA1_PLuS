@@ -33,15 +33,29 @@
 .PARAMETER Force
   Artefakte ueberschreiben, die es in bin\ schon gibt.
 
+.PARAMETER RomImage
+  Image einer GottFA1-SD-Karte. Dann geht je Board auch die ROM-Datei fuer den
+  Konfigurationsflash mit (make_flash_hex.ps1, Flash_ROM.vhd):
+    ReleaseArtifact 'jic'  -> GottFA1_PLuS_v<ver>_roms.jic  (quartus_cpf gottfa1_roms.cof)
+    ReleaseArtifact 'rbf'  -> GottFA1_PLuS_v<ver>_roms.bin  (roher ROM-Bereich ab 0x080000,
+                              ueber den ESP32 zu schreiben: WRITE GAME ROMS, ungedreht)
+  ENTHAELT URHEBERRECHTLICH GESCHUETZTE ROMs: beide Endungen stehen in .gitignore,
+  sie liegen nur lokal in bin\. Ins changelog geht nur Name, Groesse und Hash.
+
 .EXAMPLE
   .\release.ps1 -Note "gemeinsamer Sourcebaum, alle Boards auf SW .03"
+
+.EXAMPLE
+  .\release.ps1 -Variants hw20x_cyclone_iv_v7 -RomImage "N:\Projekte\FPGA System1\GottFA1_SD_Image_v200.img" -Note "..."
 #>
 param(
     [Parameter(Mandatory=$true)]
     [string]  $Note,
     [string[]]$Variants,
-    [switch]  $Force
+    [switch]  $Force,
+    [string]  $RomImage
 )
+if ($RomImage -and -not (Test-Path $RomImage)) { throw "RomImage nicht gefunden: $RomImage" }
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot  = Split-Path -Parent $ScriptDir
@@ -99,6 +113,32 @@ foreach ($dir in $folders) {
         if ((Test-Path $dst) -and -not $Force) { throw "$dst existiert bereits - SW_SUB in rtl\common\version_pkg.vhd erhoehen oder -Force" }
         $pairs += ,@($src, $dst, $ext)
     }
+    # ROM-Datei aus dem Kartenimage: .jic fuer Boards mit JTAG-Stecker, roher
+    # ROM-Bereich (.bin) fuer das ESP32-Board v7. Gebaut wird VOR dem Kopieren,
+    # damit ein Fehler kein halbes Release hinterlaesst.
+    if ($RomImage) {
+        $outFiles = Join-Path $dir.FullName 'output_files'
+        $mk = Join-Path $ScriptDir 'make_flash_hex.ps1'
+        if ($meta.ReleaseArtifact -eq 'rbf') {
+            $romSrc = Join-Path $outFiles 'gottfa1_roms.bin'
+            & $mk -Image $RomImage -Bin $romSrc | Out-Host
+            $romExt = 'roms.bin'
+        } else {
+            $romSrc = Join-Path $outFiles 'gottfa1_roms.jic'
+            & $mk -Image $RomImage -Out (Join-Path $outFiles 'gottfa1_roms.hex') | Out-Host
+            Push-Location $dir.FullName
+            try {
+                & 'C:\intelFPGA_lite\22.1std\quartus\bin64\quartus_cpf.exe' -c gottfa1_roms.cof | Out-Null
+                if ($LASTEXITCODE -ne 0) { throw "quartus_cpf gottfa1_roms.cof fehlgeschlagen fuer $($meta.Name)" }
+            } finally { Pop-Location }
+            $romExt = 'roms.jic'
+        }
+        if (-not (Test-Path $romSrc)) { throw "ROM-Datei fehlt: $romSrc" }
+        $romDst = Join-Path $outDir "GottFA1_PLuS_v${ver}_$romExt"
+        if ((Test-Path $romDst) -and -not $Force) { throw "$romDst existiert bereits - -Force" }
+        $pairs += ,@($romSrc, $romDst, $romExt)
+    }
+
     foreach ($p in $pairs) {
         Copy-Item $p[0] $p[1] -Force
         $hash = (Get-FileHash $p[1] -Algorithm SHA256).Hash.Substring(0,16)
