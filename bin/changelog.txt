@@ -66,3 +66,8 @@ VARIANTEN.md - nicht hier.
   hw20x_cyclone_iv_v3    5.30   GottFA1_PLuS_v530_roms.jic    2.097.375 B  sha256:2F1025FB83003BBF
 
 2026-10-24  5.30 (hw20x_cyclone_iv_v3) tested successfully on hardware. Tested so far: 7.30 and 5.30; 9.30, 8.30 and 6.30 not yet.
+
+2026-10-24 19:36  Version .30
+  Erstes Release fuer das Cyclone-IV-Board v7 (V 430): FA-Control ueber den ESP32-C3 auf X7, PPS4-RAM im M9K. Auf v7 getestet: Boot von SD und ohne SD (READFL, ROMs ueber WLAN geschrieben), FA-Control-Connect, Displays. Lampen/Spulen/Schalter/Sound unter FA-Control ungetestet.
+  hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.jic         2.097.375 B  sha256:A49B70F74B3BA1B9
+  hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.rbf           156.068 B  sha256:D2BC38AF069F81F9
