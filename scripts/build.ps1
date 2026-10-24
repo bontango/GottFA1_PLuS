@@ -18,6 +18,11 @@
   liefert 2.097.375 Byte, Cyclone 10 (10CL006Y) 2.097.377 Byte. Gleiche Groesse bei
   ungleicher Familie hiesse, zwei .cof zeigen auf dasselbe Board.
 
+  ExtraArtifacts in variant.psd1 (heute nur 'rbf' bei hw20x_cyclone_iv_v7) erzeugt
+  Quartus selbst, ueber eine Assignment-Zeile in device.tcl. Hier wird nur geprueft,
+  dass die Datei da ist und aus DIESEM Compile stammt - eine alte .rbf neben einer
+  neuen .sof waere ein falsches Release.
+
 .PARAMETER Variant
   Ordnername unter variants\, z. B. hw21x_cyclone_10.
 
@@ -54,12 +59,21 @@ Push-Location $VarDir
 try {
     $sh = Join-Path $QuartusBin 'quartus_sh.exe'
     if (-not (Test-Path $sh)) { throw "quartus_sh nicht gefunden: $sh" }
+    $compileStart = Get-Date
     & $sh --flow compile $Project
     if ($LASTEXITCODE -ne 0) { throw "Compile fehlgeschlagen fuer $Variant (Exit $LASTEXITCODE)" }
 
     $sof = Join-Path $VarDir "output_files\$Project.sof"
     if (-not (Test-Path $sof)) { throw "Compile meldet Erfolg, aber $sof fehlt" }
     Write-Host '  .sof ok' -ForegroundColor Green
+
+    foreach ($ext in @($meta.ExtraArtifacts)) {
+        if (-not $ext) { continue }
+        $extra = Join-Path $VarDir "output_files\$Project.$ext"
+        if (-not (Test-Path $extra)) { throw "ExtraArtifacts nennt '$ext', aber $extra fehlt (Assignment in device.tcl?)" }
+        if ((Get-Item $extra).LastWriteTime -lt $compileStart) { throw "$extra ist aelter als dieser Compile - nicht aus diesem Lauf" }
+        Write-Host ("  .{0} ok ({1:N0} Byte)" -f $ext, (Get-Item $extra).Length) -ForegroundColor Green
+    }
 
     if (-not $NoJic -and $meta.ReleaseArtifact -eq 'jic') {
         $cpf = Join-Path $QuartusBin 'quartus_cpf.exe'

@@ -17,6 +17,10 @@
   ueberschrieben: eine schon vorhandene Datei gleichen Namens bricht den Lauf ab,
   ausser mit -Force.
 
+  Neben dem Hauptartefakt (ReleaseArtifact) gehen die ExtraArtifacts aus variant.psd1
+  mit, gleicher Name, andere Endung - heute die .rbf von hw20x_cyclone_iv_v7 fuer das
+  Schreiben ueber den ESP32. Dieselben Regeln: nichts ohne -Force ueberschreiben.
+
   Das changelog wird nur angehaengt und ist der Ort fuer das, was NICHT getestet ist -
   hw21x_cyclone_iv_v3 lief noch nie auf Hardware.
 
@@ -81,31 +85,40 @@ foreach ($dir in $folders) {
     & (Join-Path $ScriptDir 'build.ps1') $meta.Name
     if ($LASTEXITCODE -ne 0) { throw "Build fehlgeschlagen fuer $($meta.Name)" }
 
-    $ext = $meta.ReleaseArtifact                      # 'jic' oder 'sof'
-    $src = Join-Path $dir.FullName "output_files\$Project.$ext"
-    if (-not (Test-Path $src)) { throw "Artefakt fehlt: $src" }
-
     $outDir = Join-Path $BinRoot $meta.BinFolder
     New-Item -ItemType Directory -Force $outDir | Out-Null
-    $dst = Join-Path $outDir "GottFA1_PLuS_v$ver.$ext"
-    if ((Test-Path $dst) -and -not $Force) { throw "$dst existiert bereits - SW_SUB in rtl\common\version_pkg.vhd erhoehen oder -Force" }
-    Copy-Item $src $dst -Force
 
-    $hash = (Get-FileHash $dst -Algorithm SHA256).Hash.Substring(0,16)
-    $made += [pscustomobject]@{
-        Variant = $meta.Name
-        Version = "$($meta.BoardId).$sub"
-        Bytes   = (Get-Item $dst).Length
-        File    = $dst
-        SHA256  = $hash
+    # Hauptartefakt ('jic' oder 'sof') und die ExtraArtifacts ('rbf'); erst alle
+    # pruefen, dann kopieren - sonst laege nach einem Abbruch ein halbes Release in bin\.
+    $exts  = @($meta.ReleaseArtifact) + @($meta.ExtraArtifacts | Where-Object { $_ })
+    $pairs = @()
+    foreach ($ext in $exts) {
+        $src = Join-Path $dir.FullName "output_files\$Project.$ext"
+        if (-not (Test-Path $src)) { throw "Artefakt fehlt: $src" }
+        $dst = Join-Path $outDir "GottFA1_PLuS_v$ver.$ext"
+        if ((Test-Path $dst) -and -not $Force) { throw "$dst existiert bereits - SW_SUB in rtl\common\version_pkg.vhd erhoehen oder -Force" }
+        $pairs += ,@($src, $dst, $ext)
+    }
+    foreach ($p in $pairs) {
+        Copy-Item $p[0] $p[1] -Force
+        $hash = (Get-FileHash $p[1] -Algorithm SHA256).Hash.Substring(0,16)
+        $made += [pscustomobject]@{
+            Variant = $meta.Name
+            Version = "$($meta.BoardId).$sub"
+            Ext     = $p[2]
+            Bytes   = (Get-Item $p[1]).Length
+            File    = $p[1]
+            SHA256  = $hash
+        }
     }
 }
 
 # Die .jic-Groesse ist geraetetypisch (EP4CE6 = 2.097.375, 10CL006Y = 2.097.377).
 # Wenn zwei Varianten unterschiedlicher Familie dieselbe Groesse liefern, zeigen ihre
 # .cof auf dasselbe Board - genau der Fehler, den v3 vor dem Umbau hatte.
-$byFamily = $made | Group-Object Bytes
-if (@($byFamily).Count -eq 1 -and @($made).Count -gt 1) {
+$mainOnly = @($made | Where-Object { $_.Ext -eq 'jic' -or $_.Ext -eq 'sof' })
+$byFamily = $mainOnly | Group-Object Bytes
+if (@($byFamily).Count -eq 1 -and @($mainOnly).Count -gt 1) {
     Write-Host 'WARNUNG: alle Artefakte sind gleich gross. Bei gemischten Chipfamilien pruefen, ob die .cof auf das richtige Board zeigen.' -ForegroundColor Yellow
 }
 

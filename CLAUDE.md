@@ -167,6 +167,14 @@ Kopie aus SternFA. Wer dort am Modul etwas ändert, zieht es hier nach.
 - **`ctrl_allow = '1'`:** Alle vier S2-DIPs und alle drei Sound-DIPs sind belegt.
 - **Nummerierung wie LISY1:** Lampen 0–35 (DS1–9, LD invertiert), Schalter 10×Return +
   Strobe (`N_SW = 75` mit Lücken), Spulen 1–8, Sound = Bits für 10/100/1000.
+- **`.rbf` für den ESP:** `GENERATE_RBF_FILE ON` in `device.tcl` der v7, dazu
+  `ExtraArtifacts = @('rbf')` in `variant.psd1`. `build.ps1` prüft, dass die Datei aus
+  dem aktuellen Compile stammt, `release.ps1` legt sie neben die `.jic` nach
+  `bin\HW20x_CycloneIV_v7\GottFA1_PLuS_v4<SW_SUB>.rbf`. Der Assembler schreibt sie
+  **komprimiert** (~156 KB statt 368 KB). Das Cyclone IV entpackt sie im AS-Modus
+  selbst, am 24.10.2026 über den ESP geschrieben und gebootet. Eingespielt wird sie in
+  FA-Control über Kachel 09 FPGA (REVERSE BITS an) oder
+  `curl --data-binary @SYS1.rbf http://<esp>/api/fpgaup`.
 - **Platz:** v7 steht bei 95 % LE. Das ging nur, weil das PPS4-RAM in einem M9K liegt
   (`PPS4_2.vhd` v0.7). Vorher hätte FA-Control nicht gepasst.
 
