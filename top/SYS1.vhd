@@ -1289,7 +1289,7 @@ end process;
 --   s 8..13  A = player 2, B = player 4, rightmost digit first
 --   s 6/7, 14/15  A = status, B dark
 -- LISY digits arrive left to right: index 0 is the LEFT one.
--- HW-TUNABLE: the status order (which pair is credits) is a guess.
+-- Checked on hardware 24.10.2026 (v7 on the desk): players and status digits right.
 FA_DISP: process(game_disp_strobes, fa_disp_ovr)
 	variable s : integer range 0 to 15;
 begin
