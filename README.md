@@ -6,6 +6,14 @@ peripherals are emulated in VHDL on an Intel/Altera FPGA.
 
 Project page & background: <https://lisy.dev/gottfa1_plus.html>
 
+## User manuals
+
+**Read online:** <https://bontango.github.io/GottFA1_PLuS/>
+
+- [User manual (English)](https://bontango.github.io/GottFA1_PLuS/GottFA1_PLuS_user_manual.html)
+- [Bedienungsanleitung (Deutsch)](https://bontango.github.io/GottFA1_PLuS/GottFA1_PLuS_Bedienungsanleitung.html)
+- [Manuel d'utilisation (Français)](https://bontango.github.io/GottFA1_PLuS/GottFA1_PLuS_manuel_utilisateur.html)
+
 ## Board variants
 
 All variants are built from **one shared source tree**: a single top level, one set
@@ -14,10 +22,10 @@ board id — nothing else.
 
 | Variant | Board | FPGA | Board id | Version shown |
 |---|---|---|---|---|
-| `hw21x_cyclone_10` | hardware v2.1x | `10CL006YE144C8G` (Cyclone 10 LP) | 9 | `V 903` |
-| `hw21x_cyclone_iv_v4` | hardware v2.1x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 8 | `V 803` |
-| `hw20x_cyclone_iv_v4` | hardware v2.0x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 7 | `V 703` |
-| `hw21x_cyclone_iv_v3` | hardware v2.1x | `EP4CE6F17C8` (Cyclone IV E, 256-FBGA) | 6 | `V 603` |
+| `hw21x_cyclone_10` | hardware v2.1x | `10CL006YE144C8G` (Cyclone 10 LP) | 9 | `V 930` |
+| `hw21x_cyclone_iv_v4` | hardware v2.1x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 8 | `V 830` |
+| `hw20x_cyclone_iv_v4` | hardware v2.0x | `EP4CE6E22C8` (Cyclone IV E, 144-EQFP) | 7 | `V 730` |
+| `hw21x_cyclone_iv_v3` | hardware v2.1x | `EP4CE6F17C8` (Cyclone IV E, 256-FBGA) | 6 | `V 630` |
 
 The boot display shows `V <board id><software version>`. The **board id** lives in
 `variants/<name>/variant_pkg.vhd`, the **software version** in
@@ -37,7 +45,7 @@ Hardware v2.0x additionally carries `LED_Test` and a CH340 USB serial header
 | `rtl/cyclone_10/`, `rtl/cyclone_iv/` | Intel IP per FPGA family (ROM/RAM megafunctions). Same entity names, same port lists — the `.qsf` picks one |
 | `variants/<name>/` | Per board: `variant_pkg.vhd`, `variant.psd1`, `device.tcl`, `pins.tcl`, `SYS1.qpf`, `SYS1.cof`, and the **generated** `SYS1.qsf` |
 | `scripts/` | `gen_qsf.ps1`, `check.ps1`, `build.ps1`, `release.ps1`, `baseline.csv` and the `.tcl` fragments |
-| `docs/` | `Hardware.md` (hardware reference), `WORKFLOW.md` (how to work in this tree) |
+| `docs/` | User manuals as HTML (en/de/fr, served by GitHub Pages, `index.html` is the landing page), `Hardware.md` (hardware reference), `WORKFLOW.md` (how to work in this tree), `Stoerimpulse_Resets.md` (mid-game resets caused by coil spikes, German) |
 | `bin/` | Released programming files per board |
 
 > **`variants/<name>/SYS1.qsf` is generated.** Do not edit it — change `pins.tcl`,

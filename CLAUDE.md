@@ -145,6 +145,16 @@ EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserv
 auf Spieler 4 der Bootanzeige werden nur beim Laden des FPGA gelöscht. Hintergrund
 und Lesart: `docs/Stoerimpulse_Resets.md`.
 
+## Handbücher (seit 24.10.2026)
+
+`docs/GottFA1_PLuS_user_manual.html` (Leitfassung), `_Bedienungsanleitung.html`,
+`_manuel_utilisateur.html` – je eine Datei, CSS und Bilder eingebettet, **das HTML ist
+die Quelle**. Änderungen in allen drei Sprachen nachziehen, Kapitelnummern gleich.
+Ändern über den Skill `projekt-doku-pages` (`html_to_md.ps1` → bearbeiten →
+`make_manual.ps1`). Online: <https://bontango.github.io/GottFA1_PLuS/>, Startseite
+`docs/index.html` aus `make_index.ps1`. Entstanden aus
+`N:\Projekte\FPGA System1\doc\GottFA1_PLuS_user manual_v1.00.docx` (Stand SW 7.00).
+
 ## Lizenz
 
 GNU General Public License v3.0 (`LICENSE`); die Quelldateien tragen den
