@@ -138,6 +138,12 @@ EPCS16   0x000000 - 0x07FFFF   Bitstream (EP4CE6/10CL006 ca. 360 KByte) + Reserv
 - Pins: E144 DCLK 12, DATA0 13, nCSO 8, ASDO 6; F17 (`hw21x_cyclone_iv_v3`, `hw20x_cyclone_iv_v3`) H1/H2/D2/C1,
   in `pins.tcl`. Freigabe als normale I/O in `scripts/common_header.tcl`.
 - `MISO` hat seit x.30 den Weak-Pull-up: ohne Karte liest es sicher FF.
+- **Über den ESP32 (v7):** `make_flash_hex.ps1 -Image <Kartenimage> -Bin
+  variants\hw20x_cyclone_iv_v7\output_files\gottfa1_roms.bin` schreibt den ROM-Bereich
+  roh (16 Slots, 256 KB, leere Slots FF). In FA-Control geht er über Kachel 09 FPGA →
+  WRITE GAME ROMS, Adresse 0x080000, **ungedreht** (anders als die `.rbf`). Im
+  `*_roms.jic` steht das Flash selbst bitgedreht; geprüft über alle 256 KB.
+  Auch `*_roms.bin` enthält urheberrechtlich geschützte ROMs (`.gitignore`).
 
 ## Eingangsfilter und Diagnosezähler (seit x.30)
 

@@ -80,5 +80,6 @@ desktop.ini
 # FPGA flash images WITH game ROMs (x.30, scripts/make_flash_hex.ps1). They lie next to
 # the release files in bin/ for local use, but never go to GitHub (copyrighted ROMs).
 *_roms.jic
+*_roms.bin
 *_roms.hex
 *_roms.map

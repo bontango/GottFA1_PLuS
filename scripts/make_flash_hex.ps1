@@ -25,19 +25,30 @@
   Image of a GottFA1 SD card (raw sectors).
 
 .PARAMETER Out
-  The .hex file to write.
+  The .hex file to write (for quartus_cpf -> *_roms.jic).
+
+.PARAMETER Bin
+  Also (or instead) write the ROM area as a raw binary: flash 080000h..0BFFFFh, all
+  16 slots, left-out games as FF like erased flash. This is what the ESP32 on the
+  Cyclone IV board v7 writes into the EPCS (FA_Control, tile 09 FPGA, address
+  0x080000, bits NOT reversed - unlike a .rbf). At least one of -Out / -Bin.
 
 .PARAMETER Games
   How many games at most. Default 16.
 
 .EXAMPLE
   .\make_flash_hex.ps1 -Image "N:\Projekte\FPGA System1\GottFA1_SD_Image_v200.img" -Out ..\variants\hw21x_cyclone_10\output_files\gottfa1_roms.hex
+
+.EXAMPLE
+  .\make_flash_hex.ps1 -Image "N:\Projekte\FPGA System1\GottFA1_SD_Image_v200.img" -Bin ..\variants\hw20x_cyclone_iv_v7\output_files\gottfa1_roms.bin
 #>
 param(
     [Parameter(Mandatory = $true)][string]$Image,
-    [Parameter(Mandatory = $true)][string]$Out,
+    [string]$Out,
+    [string]$Bin,
     [int]$Games = 16
 )
+if (-not $Out -and -not $Bin) { throw 'Give -Out (Intel HEX) and/or -Bin (raw ROM area).' }
 
 $ErrorActionPreference = 'Stop'
 
@@ -83,6 +94,9 @@ public static class GottFAFlash {
 $img = [System.IO.File]::ReadAllBytes((Resolve-Path $Image))
 $sb = New-Object System.Text.StringBuilder
 $written = 0
+# raw ROM area for -Bin: 16 slots, erased (FF) unless a game goes there
+$raw = New-Object byte[] (16 * $FlashSlot)
+for ($i = 0; $i -lt $raw.Length; $i++) { $raw[$i] = 0xFF }
 for ($n = 0; $n -lt $Games; $n++) {
     $off = ($FirstSector * 512) + ($n * $SlotBytes)
     if ($off + $SlotBytes -gt $img.Length) { break }
@@ -97,14 +111,27 @@ for ($n = 0; $n -lt $Games; $n++) {
     }
     Write-Host ('game {0,2}: {1:X6}  first bytes {2:X2}{3:X2}' -f $n, $addr, $img[$off], $img[$off + 1])
     [GottFAFlash]::Data($sb, $addr, $img, $off, $SlotBytes)
+    [Array]::Copy($img, $off, $raw, $n * $FlashSlot, $SlotBytes)
     $written++
 }
 [GottFAFlash]::End($sb)
 if ($written -eq 0) { throw 'No game found.' }
 
-if ([System.IO.Path]::IsPathRooted($Out)) { $outFull = $Out }
-else { $outFull = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Out)) }
-$dir = Split-Path $outFull
-if (-not (Test-Path $dir)) { $null = New-Item -ItemType Directory -Path $dir }
-[System.IO.File]::WriteAllText($outFull, $sb.ToString(), (New-Object System.Text.ASCIIEncoding))
-Write-Host ('{0} games written to {1}' -f $written, $outFull)
+function Get-OutPath([string]$Path) {
+    if ([System.IO.Path]::IsPathRooted($Path)) { $full = $Path }
+    else { $full = [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path)) }
+    $dir = Split-Path $full
+    if (-not (Test-Path $dir)) { $null = New-Item -ItemType Directory -Path $dir }
+    return $full
+}
+if ($Out) {
+    $outFull = Get-OutPath $Out
+    [System.IO.File]::WriteAllText($outFull, $sb.ToString(), (New-Object System.Text.ASCIIEncoding))
+    Write-Host ('{0} games written to {1}' -f $written, $outFull)
+}
+if ($Bin) {
+    $binFull = Get-OutPath $Bin
+    [System.IO.File]::WriteAllBytes($binFull, $raw)
+    Write-Host ('{0} games written to {1} ({2:N0} bytes, flash 0x{3:X6}..0x{4:X6})' -f `
+        $written, $binFull, $raw.Length, $FlashBase, ($FlashBase + $raw.Length - 1))
+}
