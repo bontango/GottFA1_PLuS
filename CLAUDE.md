@@ -186,6 +186,13 @@ Kopie aus SternFA. Wer dort am Modul etwas ändert, zieht es hier nach.
   selbst, am 24.10.2026 über den ESP geschrieben und gebootet. Eingespielt wird sie in
   FA-Control über Kachel 09 FPGA (REVERSE BITS an) oder
   `curl --data-binary @SYS1.rbf http://<esp>/api/fpgaup`.
+- **Monitor (Opcode 0x6E, seit 25.10.2026):** FA-Control liest im MONITOR MODE ohne
+  Übernahme den Istzustand. `fa_control.vhd` transportiert nur (`MON_BYTES`, `mon_data`,
+  `mon_rd`/`mon_idx`), belegt wird `mon_data` in `gen_fa_control`: Lampen als Schatten der
+  74175 (`lamp_ld`/`lamp_ds` hinter allen Muxen), Spulen und Tonleitungen mit Merkbits bis
+  zum Abholen, `fa_sw_state`, Displays direkt aus dem Registerfile von `r10788` (`regs_o`,
+  v0.9, in den anderen Varianten offen und wegoptimiert). Layout:
+  `N:\Projekte\FA_Control\docs\TECHNICAL_REFERENCE.md` § 4.2.
 - **Platz:** v7 steht bei 95 % LE. Das ging nur, weil das PPS4-RAM in einem M9K liegt
   (`PPS4_2.vhd` v0.7). Vorher hätte FA-Control nicht gepasst.
 

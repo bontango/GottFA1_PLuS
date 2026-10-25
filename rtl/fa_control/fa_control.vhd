@@ -81,6 +81,18 @@
 --   * Unbekannte Opcodes werden ohne Parameter angenommen und mit 0x00 beantwortet
 --     (wie im WillFA7-Monitor). Ein unbekannter Opcode MIT Parametern wuerde den
 --     Bytestrom verschieben -- die Gegenstelle schickt aber nur die Liste unten.
+--
+-- ---------------------------------------------------------------------------
+-- MONITOR (Opcode 110, Erweiterung von FA-Control, nicht in LISY API 0.12)
+-- ---------------------------------------------------------------------------
+-- Liefert den IST-Zustand des laufenden Spiels in einem Rutsch, ohne Uebernahme
+-- und ohne irgendetwas zu veraendern: Antwort = 1 Byte Laenge (MON_BYTES), dann
+-- MON_BYTES Datenbytes aus mon_data. Was in den Bytes steht, legt das Top-Level
+-- fest (Layout s. FA_Control docs/TECHNICAL_REFERENCE.md). Dieses Modul kennt den
+-- Inhalt nicht. Mit MON_BYTES = 0 (Default) antwortet Opcode 110 wie jeder
+-- unbekannte Opcode mit 0x00 -- der Host liest daraus "Monitor nicht vorhanden".
+-- mon_rd/mon_idx melden je gesendetem Byte dessen Index, damit das Top-Level
+-- Merkbits (kurze Spulenpulse) genau beim Abholen loeschen kann.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -123,7 +135,9 @@ entity fa_control is
 		-- Spiel-ROMs unter <HW>/<nnn> ab; eine einzelne Ziffer laesst Spiel 5, 15 und
 		-- 105 zusammenfallen. SternFA meldet deshalb 3. Der Default 1 haelt das Modul
 		-- zu Kopien kompatibel, die game_info noch vierbittig anschliessen (AtariFA).
-		GAME_DIGITS  : integer := 1
+		GAME_DIGITS  : integer := 1;
+		-- Laenge der Monitor-Antwort (Opcode 110) ohne Laengenbyte. 0 = kein Monitor.
+		MON_BYTES    : integer := 0
 	);
 	port (
 		clk         : in  std_logic;                        -- 50 MHz
@@ -150,7 +164,12 @@ entity fa_control is
 		-- Index = Display-Nr * MAX_DIGITS + Ziffer, Ziffer 0 = zuerst gesendet.
 		disp_ovr    : out fa_nibble_array_t(0 to N_DISP * MAX_DIGITS - 1);
 		snd_ovr     : out std_logic_vector(3 downto 0);
-		snd_en      : out std_logic
+		snd_en      : out std_logic;
+		-- Monitor (Opcode 110). Byte k (1..MON_BYTES) = mon_data(8k+7 downto 8k),
+		-- Byte 0 ist ungenutzt (an seiner Stelle geht die Laenge raus).
+		mon_data    : in  std_logic_vector(8 * MON_BYTES + 7 downto 0) := (others => '0');
+		mon_rd      : out std_logic;                        -- 1 Takt je gesendetem Byte
+		mon_idx     : out integer range 0 to 255            -- dessen Index k
 	);
 end fa_control;
 
@@ -187,6 +206,7 @@ architecture rtl of fa_control is
 	constant OP_INIT           : integer := 100;  -- -> Byte, s. Kopfkommentar
 	constant OP_WATCHDOG       : integer := 101;  -- -> Byte 0
 	constant OP_BACK_READY     : integer := 102;  -- -> Byte 0
+	constant OP_G_MONITOR      : integer := 110;  -- -> Laenge + Daten, s. Kopf "MONITOR"
 
 	constant SW_NO_CHANGE : std_logic_vector(7 downto 0) := x"7F";  -- 127
 
@@ -199,7 +219,19 @@ architecture rtl of fa_control is
 	-- ---------------------------------------------------------------------
 	constant TXBUF_LEN : integer := 12;
 	type byte_buf_t is array (0 to TXBUF_LEN - 1) of std_logic_vector(7 downto 0);
-	type tx_src_t is (SRC_NONE, SRC_HW, SRC_API, SRC_VER, SRC_GAME, SRC_BYTES);
+	type tx_src_t is (SRC_NONE, SRC_HW, SRC_API, SRC_VER, SRC_GAME, SRC_BYTES, SRC_MON);
+
+	function imax(a, b : integer) return integer is
+	begin
+		if a > b then
+			return a;
+		end if;
+		return b;
+	end function;
+
+	-- Laengste Antwort: ein String oder die Monitor-Antwort samt Laengenbyte.
+	-- Ohne Monitor bleibt es bei TXBUF_LEN, die Zaehler also so breit wie vorher.
+	constant TX_MAX : integer := imax(TXBUF_LEN, MON_BYTES + 1);
 
 	-- String -> Puffer, NUL-terminiert (der Rest bleibt 0x00, das IST der Terminator).
 	function str_to_buf(s : string) return byte_buf_t is
@@ -258,8 +290,8 @@ architecture rtl of fa_control is
 	signal tx_src  : tx_src_t := SRC_NONE;
 	signal tx_b0   : std_logic_vector(7 downto 0) := (others => '0');
 	signal tx_b1   : std_logic_vector(7 downto 0) := (others => '0');
-	signal tx_len  : integer range 0 to TXBUF_LEN := 0;
-	signal tx_idx  : integer range 0 to TXBUF_LEN := 0;
+	signal tx_len  : integer range 0 to TX_MAX := 0;
+	signal tx_idx  : integer range 0 to TX_MAX := 0;
 	signal tx_next : std_logic_vector(7 downto 0);   -- das jeweils faellige Byte
 
 	-- ---------------------------------------------------------------------
@@ -325,11 +357,30 @@ begin
 	-- Das faellige Antwortbyte. Die Strings sind Konstanten, die Versionsziffern
 	-- kommen unveraendert von den Eingaengen -- daraus wird eine kleine Nachschlag-
 	-- tabelle statt eines gefuellten Registers.
-	tx_pick : process(tx_src, tx_idx, tx_b0, tx_b1, ver_main, ver_sub1, ver_sub2, game_info)
+	tx_pick : process(tx_src, tx_idx, tx_b0, tx_b1, ver_main, ver_sub1, ver_sub2, game_info,
+	                  mon_data)
 	begin
 		case tx_src is
-			when SRC_HW  => tx_next <= HW_BUF(tx_idx);
-			when SRC_API => tx_next <= API_BUF(tx_idx);
+			-- tx_idx kann mit Monitor ueber TXBUF_LEN hinaus zaehlen, daher die Abfrage.
+			when SRC_HW  =>
+				if tx_idx < TXBUF_LEN then
+					tx_next <= HW_BUF(tx_idx);
+				else
+					tx_next <= x"00";
+				end if;
+			when SRC_API =>
+				if tx_idx < TXBUF_LEN then
+					tx_next <= API_BUF(tx_idx);
+				else
+					tx_next <= x"00";
+				end if;
+			when SRC_MON =>                        -- Laenge, dann mon_data Byte 1..N
+				tx_next <= to_byte(MON_BYTES);
+				for k in 1 to MON_BYTES loop
+					if tx_idx = k then
+						tx_next <= mon_data(8 * k + 7 downto 8 * k);
+					end if;
+				end loop;
 			when SRC_VER =>                        -- "M.S1.S2" + NUL
 				case tx_idx is
 					when 0      => tx_next <= ascii_digit(ver_main);
@@ -386,6 +437,7 @@ begin
 			if reset = '1' then
 				state      <= S_OPCODE;
 				tx_dv      <= '0';
+				mon_rd     <= '0';
 				tx_len     <= 0;
 				tx_idx     <= 0;
 				tx_src     <= SRC_NONE;
@@ -407,7 +459,8 @@ begin
 				scan_idx   <= 0;
 				pend_valid <= '0';
 			else
-				tx_dv <= '0';   -- Default: nur ein Takt breit
+				tx_dv  <= '0';   -- Default: nur ein Takt breit
+				mon_rd <= '0';
 
 				-- ---- ctrl_req einsynchronisieren (asynchrone Leitung) ----
 				req_meta <= ctrl_req;
@@ -687,6 +740,14 @@ begin
 							when OP_WATCHDOG | OP_BACK_READY =>
 								tx_b0 <= x"00";  tx_len <= 1;
 
+							-- ---- Monitor: Istzustand, geht immer, aendert nichts ----
+							when OP_G_MONITOR =>
+								if MON_BYTES > 0 then
+									tx_src <= SRC_MON;  tx_len <= MON_BYTES + 1;
+								else
+									tx_b0 <= x"00";     tx_len <= 1;   -- wie unbekannt
+								end if;
+
 							when others =>
 								-- Unbekannt: mit 0 quittieren (wie der WillFA7-Monitor)
 								tx_b0 <= x"00";  tx_len <= 1;
@@ -702,6 +763,10 @@ begin
 						elsif tx_busy = '0' then
 							tx_byte <= tx_next;
 							tx_dv   <= '1';
+							if tx_src = SRC_MON then
+								mon_rd  <= '1';
+								mon_idx <= tx_idx;
+							end if;
 							tx_idx  <= tx_idx + 1;
 							state   <= S_SEND_DV;
 						end if;

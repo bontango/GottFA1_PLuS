@@ -383,7 +383,10 @@ signal disp_in_B	: std_logic_vector(3 downto 0);
 signal Sound_10_g	: std_logic;
 signal Sound_100_g	: std_logic;
 signal Sound_1K_g	: std_logic;
-signal Sound_10		: std_logic; 
+signal lamp_ld		: std_logic_vector(3 downto 0);	-- ld/ds as driven, readable for the monitor
+signal lamp_ds		: std_logic_vector(3 downto 0);
+signal disp_regs	: std_logic_vector(127 downto 0);	-- r10788 register file, monitor only
+signal Sound_10		: std_logic;
 signal Sound_100		: std_logic; 
 signal Sound_1K		: std_logic; 
 
@@ -745,7 +748,8 @@ port map(
 		  group_B => display_group_B,
 		  strobes => game_disp_strobes,
 		  blank_o => disp_blank,
-		  
+		  regs_o => disp_regs,
+
 		  is_tube => sw2_dips(2)   --adjust timing for display via options dip3
 
 	);	
@@ -996,13 +1000,16 @@ game_gtb_dips <= GTB_dips when gtb_dips_save(23)='1' else
 					  gtb_dips_save(23 downto 16) when game_ds = "0010" else
 					  "11111111";
 
-ld <= fa_ld when fa_active = '1' else
+lamp_ld <= fa_ld when fa_active = '1' else
       attract_ld when (attract_running='1' and gtb_dips_save(23)='0') else game_ld;
 
-ds <= fa_ds when fa_active = '1' else
+lamp_ds <= fa_ds when fa_active = '1' else
 	   gtb_dips_ds when gtb_dips_red='0' else
 	   attract_ds when (attract_running='1' and gtb_dips_save(23)='0')
 		else game_ds;
+
+ld <= lamp_ld;
+ds <= lamp_ds;
 
 A_ROM: entity work.attract -- 4K commands for attract mode
 port map(
@@ -1163,6 +1170,36 @@ gen_fa_control: if HAS_ESP32 generate
 	signal game_no    : integer range 0 to 15;
 	signal game_bcd   : std_logic_vector(11 downto 0);
 
+	-- Monitor (opcode 110), byte k of the answer = mon_data(8k+7 downto 8k):
+	--   1      flags: bit0 game running, bit1 FA control active, bit2 attract mode
+	--   2..6   lamps 0..35, LSB of byte 2 = lamp 0
+	--   7      coils 1..8 now (bit0 = coil 1)
+	--   8      coils seen since the last read (cleared when sent)
+	--   9      sound lines seen since the last read: bit0/1/2 = 10/100/1000
+	--   10..19 switches as opcode 40 numbers them, LSB of byte 10 = switch 0
+	--   20..33 displays in LISY order (0 = status, 1..4 = player), two BCD digits
+	--          per byte, left digit in the high nibble; >= 0xA = dark
+	constant FA_MON_BYTES : integer := 33;
+	type mon_ref_t is array (0 to 27) of integer range 0 to 31;
+	-- nibble of disp_regs per LISY digit: reg A k = k-1, reg B k = 15+k (see FA_DISP)
+	constant MON_DIGIT : mon_ref_t := (
+		8, 9, 0, 1,                 -- status: A9 A10 A1 A2
+		2, 3, 4, 5, 6, 7,           -- player 1: A3..A8
+		10, 11, 12, 13, 14, 15,     -- player 2: A11..A16
+		18, 19, 20, 21, 22, 23,     -- player 3: B3..B8
+		26, 27, 28, 29, 30, 31);    -- player 4: B11..B16
+	signal mon_data   : std_logic_vector(8 * FA_MON_BYTES + 7 downto 0);
+	signal mon_rd     : std_logic;
+	signal mon_idx    : integer range 0 to 255;
+	signal mon_lamps  : std_logic_vector(39 downto 0) := (others => '0');
+	signal mon_ld_q   : std_logic_vector(3 downto 0) := (others => '1');
+	signal mon_ds_q   : std_logic_vector(3 downto 0) := (others => '0');
+	signal mon_ds_qq  : std_logic_vector(3 downto 0) := (others => '0');
+	signal mon_sol    : std_logic_vector(7 downto 0);
+	signal mon_sol_x  : std_logic_vector(7 downto 0) := (others => '0');
+	signal mon_snd    : std_logic_vector(2 downto 0);
+	signal mon_snd_x  : std_logic_vector(2 downto 0) := (others => '0');
+
 begin
 
 FAC: entity work.fa_control
@@ -1181,7 +1218,8 @@ generic map(
 	MAX_SOL      => FA_N_SOL,
 	MAX_SW       => FA_N_SW,
 	MAX_DIGITS   => FA_DIGITS,
-	GAME_DIGITS  => 3		-- FA-Control files names/roms under GottFA1/<nnn>
+	GAME_DIGITS  => 3,		-- FA-Control files names/roms under GottFA1/<nnn>
+	MON_BYTES    => FA_MON_BYTES
 	)
 port map(
 	clk         => clk_50,
@@ -1200,7 +1238,10 @@ port map(
 	sol_ovr     => fa_sol_ovr,
 	disp_ovr    => fa_disp_ovr,
 	snd_ovr     => fa_snd_ovr,
-	snd_en      => fa_snd_en
+	snd_en      => fa_snd_en,
+	mon_data    => mon_data,
+	mon_rd      => mon_rd,
+	mon_idx     => mon_idx
 	);
 
 -- game number as selected with S1, the same index SD_Card and Flash_ROM use
@@ -1309,6 +1350,62 @@ begin
 		when others => fa_disp_A <= fa_disp_ovr(3);	-- 6
 	end case;
 end process;
+
+-- Monitor: the machine as it is, read without control and without touching it.
+-- Lamps: the board's 74175 take LD while their DS line is active, so the shadow
+-- copies LD for as long as DS = n holds. Taken behind the muxes above, i.e. what
+-- the latches really get (attract mode, DIP read at start, FA control included).
+-- DS is sampled twice and has to agree, the attract command runs on cpu_clk.
+MON_LAMP_SHADOW: process(clk_50)
+begin
+	if rising_edge(clk_50) then
+		mon_ld_q  <= lamp_ld;
+		mon_ds_q  <= lamp_ds;
+		mon_ds_qq <= mon_ds_q;
+		if mon_ds_q = mon_ds_qq then
+			for i in 0 to 8 loop
+				if to_integer(unsigned(mon_ds_q)) = i + 1 then
+					mon_lamps(4 * i + 3 downto 4 * i) <= not mon_ld_q;
+				end if;
+			end loop;
+		end if;
+	end if;
+end process;
+
+-- Coils and sound last milliseconds, the host asks every 250 ms: keep every pulse
+-- until its byte has gone out. Setting wins over clearing.
+mon_sol <= fa_sol_ovr when fa_active = '1' else solenoids_intern;
+mon_snd <= Sound_1K & Sound_100 & Sound_10;
+
+MON_PULSES: process(clk_50)
+begin
+	if rising_edge(clk_50) then
+		if mon_rd = '1' and mon_idx = 8 then
+			mon_sol_x <= mon_sol;
+		else
+			mon_sol_x <= mon_sol_x or mon_sol;
+		end if;
+		if mon_rd = '1' and mon_idx = 9 then
+			mon_snd_x <= mon_snd;
+		else
+			mon_snd_x <= mon_snd_x or mon_snd;
+		end if;
+	end if;
+end process;
+
+mon_data(7 downto 0)     <= x"00";		-- byte 0 is the length, sent by fa_control
+mon_data(15 downto 8)    <= "00000" & (attract_running and not gtb_dips_save(23))
+                            & fa_active & game_running;
+mon_data(55 downto 16)   <= mon_lamps;
+mon_data(63 downto 56)   <= mon_sol;
+mon_data(71 downto 64)   <= mon_sol_x;
+mon_data(79 downto 72)   <= "00000" & mon_snd_x;
+mon_data(159 downto 80)  <= "00000" & fa_sw_state;
+
+mon_disp: for j in 0 to 27 generate
+	mon_data(8 * (20 + j / 2) + 7 - 4 * (j mod 2) downto 8 * (20 + j / 2) + 4 - 4 * (j mod 2))
+		<= disp_regs(4 * MON_DIGIT(j) + 3 downto 4 * MON_DIGIT(j));
+end generate;
 
 end generate;
 

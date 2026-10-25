@@ -21,6 +21,7 @@
 -- v0.6 more ghosting prevention
 -- v0.7 disabled KAF, KBF and KDN again (displays flickering during count)
 -- v0.8 added switch for selection of 'gap'
+-- v0.9 regs_o: register file for the FA-Control monitor (left open = removed by synthesis)
 --*****************************************************************************
 
 library ieee;
@@ -43,6 +44,8 @@ entity r10788 is
 		  group_B   : out  std_logic_vector( 3 downto 0); -- Digit data Group B
 		  strobes   : out  std_logic_vector( 3 downto 0);
 		  blank_o   : out  std_logic; -- '1' = dark phase between two digits (ghosting)
+		  -- register file, BCD (0xF = dark): reg A k at 4k-1 downto 4k-4, reg B k 64 higher
+		  regs_o    : out  std_logic_vector(127 downto 0);
 		  
 		  is_tube   : in  std_logic -- switch if we have tube displays or LEDs
         );
@@ -70,7 +73,12 @@ architecture fsm of r10788 is
 begin  --  fsm 
 
   blank_o <= blanking;
-  
+
+  regs_out: for k in 1 to 16 generate
+    regs_o(4 * k - 1 downto 4 * k - 4)       <= DISP_REG_A(k);
+    regs_o(64 + 4 * k - 1 downto 64 + 4 * k - 4) <= DISP_REG_B(k);
+  end generate;
+
   fsm_proc : process ( clk, reset)
   begin  --  process fsm_proc 
 
