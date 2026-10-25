@@ -76,3 +76,8 @@ VARIANTEN.md - nicht hier.
   Ersetzt den Eintrag 19:36: Board v7 hat keinen JTAG-Stecker, programmiert wird nur ueber den ESP32 - Release ist die .rbf (WRITE) plus _roms.bin (WRITE GAME ROMS, 0x080000, nur lokal). Inhalt unveraendert: FA-Control, PPS4-RAM im M9K; getestet Boot von SD und ohne SD (READFL), FA-Control-Connect, Displays.
   hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430.rbf           156.068 B  sha256:D2BC38AF069F81F9
   hw20x_cyclone_iv_v7    4.30   GottFA1_PLuS_v430_roms.bin      262.144 B  sha256:EF61146D47E2F1AA
+
+2026-10-25 18:42  Version .31
+  Monitor fuer FA_Control (Opcode 0x6E, FA_Control ab 1.25): Lampen, Spulen und Tonleitungen mit Merkbits, Schalter und Displays ohne Uebernahme lesbar. Nur v7 released, die anderen Boards bleiben bei .30 (fuer sie aendert sich funktional nichts). Auf v7 getestet: Monitor-Modus mit laufendem Spiel (Displays, Lampen, Spulen, Chimes, Schalter), Wechsel Control/Monitor.
+  hw20x_cyclone_iv_v7    4.31   GottFA1_PLuS_v431.rbf           160.504 B  sha256:98AC8E324324224D
+  hw20x_cyclone_iv_v7    4.31   GottFA1_PLuS_v431_roms.bin      262.144 B  sha256:EF61146D47E2F1AA

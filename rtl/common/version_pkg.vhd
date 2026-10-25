@@ -39,6 +39,7 @@ package version_pkg is
 	-- Die Schrittfolge ist ueber alle Boards dieselbe: x.01 war "test button
 	-- produces sound", x.02 "dfp player activated with active signal",
 	-- x.03 "moved Button_Test to SB_Test", x.30 "game roms from the configuration
-	-- flash, reset filter and diagnostic counters".
-	constant SW_SUB : string(1 to 2) := "30";
+	-- flash, reset filter and diagnostic counters", x.31 "monitor snapshot (opcode 0x6E)
+	-- for FA_Control, released for board v7 only".
+	constant SW_SUB : string(1 to 2) := "31";
 end package version_pkg;
